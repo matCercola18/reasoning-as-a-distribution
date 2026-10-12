@@ -18,7 +18,7 @@ node static/js/flow.js          # self-check of the playground's flow math
 | path | what |
 |---|---|
 | `index.html` | the page |
-| `static/css/style.css` | styles (light and dark) |
+| `static/css/style.css` | styles (dark theme) |
 | `static/js/main.js` | video playback, clip switchers, chapters, charts, playground |
 | `static/js/flow.js` | toy rectified-flow model behind the playground |
 | `static/js/plan_samples.js` | flow draws for the "plan draws on the scene image" figure |
