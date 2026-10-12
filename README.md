@@ -39,12 +39,10 @@ The other SO-101 clips are workspace-camera cuts at 2× real time from the robot
 
 | clip | session | run id | plan | outcome |
 |---|---|---|---|---|
-| `hero_pick` | r2_g0 | 20261002-171142-003 | r:pick | success |
-| `hero_push` | r2_g0 | 20261002-171142-002 | r:push | success |
-| `steer_pick` | r2_g0 | 20261002-142457-039 | r:pick | success |
-| `steer_push` | r2_g0 | 20261002-142457-046 | r:push | success |
-| `cover_pick` | r2_g0 | 20261002-142457-049 | r (prior draw) | success |
-| `cover_push` | r2_g0 | 20261002-142457-051 | r (prior draw) | success |
+| `hero_pick` | lying_base_2 (cond normal) | 20261005-165309-003 | r:pick | success |
+| `hero_push` | lying_base_2 (cond normal) | 20261005-165309-007 | r:push | success |
+| `steer_pick` | lying_base_2 (cond normal) | 20261005-165309-021 | r:pick | success |
+| `steer_push` | lying_base_2 (cond normal) | 20261005-165309-027 | r:push | success |
 | `raised_pick_ok` | raised_base | 20261005-141712-006 | pick | success |
 | `raised_push_fail` | raised_base | 20261005-141712-007 | push | failure |
 | `lying_pick_fail` | lying_2 | 20261005-122538-001 | adapt → pick | failure |

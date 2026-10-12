@@ -293,23 +293,26 @@
   <div class="wrap">
     <div class="eyebrow"><b>04</b>Real robot</div>
     <h2>The same operations on a real arm</h2>
-    <p class="lead">We moved GPL onto a low-cost SO-101 arm. The task is to get a toilet-paper roll into a taped square, and the demonstrations contain two valid manners: pick the roll up, or push it along the table. The plan decides which.</p>
+    <p class="lead">We moved GPL onto a low-cost SO-101 arm. The task is to get a toilet-paper roll into a square marked on the table, and the demonstrations contain two valid manners: pick the roll up, or push it along the table. The plan decides which.</p>
     <div class="specs"><span>SO-101 arm</span><span>π<sub>0.5</sub> trained jointly with the plan interface</span><span>plan = 54-D contact sketch</span><span>workspace + wrist cameras</span><span>clips at 2× speed</span></div>
-    <p class="note" style="margin-top:12px">Unlike the simulation recipe, which freezes the VLA and trains a LoRA, the robot executor is π<sub>0.5</sub> fine-tuned together with the plan projector on our SO-101 demonstrations. The steering and coverage clips come from the first session (Oct 2), which used an earlier, jerkier motion controller; the adaptation runs are from Oct 5.</p>
+    <p class="note" style="margin-top:12px">Unlike the simulation recipe, which freezes the VLA and trains a LoRA, the robot executor is π<sub>0.5</sub> fine-tuned together with the plan projector on our SO-101 demonstrations. All clips use the smoothed motion controller (October 5 sessions).</p>
 
     <h3>Steering: one scene, two plans</h3>
     <div class="grid2">
       <div class="media"><span class="chip blue">plan: pick</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/steer_pick.jpg" src="static/media/hw/steer_pick.mp4"></video></div>
       <div class="media"><span class="chip amber">plan: push</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/steer_push.jpg" src="static/media/hw/steer_push.mp4"></video></div>
     </div>
-    <p class="cap">From nearly the same start, the plan is the reasoner's first draw in the pick mode, then its first draw in the push mode. Conditioned on that plan (classifier-free plan guidance, w = 2), the executor picks the roll up and sets it in the square in one run, and slides it in with a closed gripper in the other. Over that session, the executed manner matched the requested one in 45 of 48 runs (pick 22/25, push 23/23).</p>
+    <p class="cap">Same start, two requested manners. Each run executes the reasoner's first draw in the requested mode (classifier-free plan guidance, w = 2): the executor lifts the roll into the square in one run, and hooks it from above and slides it along the table in the other. In this session the executed manner matched the request in all 13 runs (pick 6/6, push 7/7; 11 ended in the square).</p>
 
     <h3>Coverage: sampling without a command</h3>
-    <div class="grid2">
-      <div class="media"><span class="chip blue">prior draw → pick</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/cover_pick.jpg" src="static/media/hw/cover_pick.mp4"></video></div>
-      <div class="media"><span class="chip amber">prior draw → push</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/cover_push.jpg" src="static/media/hw/cover_push.mp4"></video></div>
+    <div class="split">
+      <p class="muted" style="margin:0">Without a request, the reasoner keeps both manners in play. We drew plans offline on every start image logged in the first robot session: in 0.98 of the sets of 8 draws, both a pick and a push plan appear. A deterministic twin trained on the same data gives one answer per image: push on 80 of the 85 images, pick on 1, and no valid plan on 4.</p>
+      <div class="bars reveal" style="margin:0">
+        <div class="bar"><span>GPL, 8 draws</span><div class="track"><div class="fill" style="width:98%;background:var(--gpl)"></div></div><b>0.98</b></div>
+        <div class="bar"><span>deterministic twin</span><div class="track"><div class="fill" style="width:0%;background:var(--det)"></div></div><b>0.00</b></div>
+        <p class="note" style="margin:2px 0 0">Share of 8-draw plan sets that contain both manners, averaged over 85 start images. Draws are scored, not executed.</p>
+      </div>
     </div>
-    <p class="cap">No mode is requested: each run uses a plan sampled from the prior. Different draws lead to different manners, and both succeed. The two starts differ by about one roll width.</p>
 
     <h3>Outcome adaptation: when one manner stops working</h3>
     <p class="muted prose">We then change the world so that one manner fails, without telling the robot. On a <b>raised target</b> a pushed roll almost never climbs the platform (1 of 10 push runs in the baseline session); on a <b>lying roll</b> the gripper rarely lifts the roll from above. After each run the planner sees only success or failure, updates a per-mode reward table, and reweights its frozen plan draws. No network weights change.</p>
