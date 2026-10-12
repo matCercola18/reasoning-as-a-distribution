@@ -130,7 +130,10 @@ section.alt { background: var(--bg-2); }
 figure { margin: 0; }
 figure.fig { margin: 34px 0 0; }
 figure.fig img { width: 100%; border-radius: 14px; background: var(--paper); padding: 14px; cursor: zoom-in; }
-.figvid { padding: 10px; }
+.plancv { width: 100%; aspect-ratio: 1; border-radius: 14px; background: #3a2a20; }
+.ptitle { font: 650 17px var(--display); margin: 0 0 10px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.ptitle span { font: 400 14px var(--sans); color: var(--ink-3); }
+.plan-ctl { margin-top: 14px; }
 figcaption { font-size: 14.5px; color: var(--ink-2); margin-top: 12px; line-height: 1.55; }
 dialog.lightbox { border: 0; padding: 0; background: transparent; max-width: 96vw; }
 dialog.lightbox::backdrop { background: rgba(4, 6, 9, 0.9); }

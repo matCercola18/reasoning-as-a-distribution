@@ -296,6 +296,67 @@
   }
   addEventListener('resize', () => trip.forEach(cv => cv._state && drawPanel(cv, cv._state)));
 
+  // ---------------------------------------------------------------- plan draws on the scene image
+  // 22 flow draws of the grasp keyframe per scene (window.PLAN, from tools/render_plan_samples.py),
+  // interpolated between the 48 Euler steps; t runs from noise (0) to committed (1).
+  const pcs = $$('canvas.plancv'), D = window.PLAN;
+  if (pcs.length && D) {
+    const imgs = D.scenes.map(sc => Object.assign(new Image(), { src: sc.img }));
+    const tIn = $('#plan-t'), tOut = $('#plan-tv'), btn = $('#plan-play');
+    const draw = () => pcs.forEach(cv => {
+      const sc = D.scenes[+cv.dataset.scene], im = imgs[+cv.dataset.scene];
+      const [g, w] = fit(cv), k = w / sc.size, n = sc.frames.length - 1;
+      if (im.complete && im.naturalWidth) g.drawImage(im, 0, 0, w, w);
+      const f = +tIn.value * n, i = Math.min(Math.floor(f), n - 1), a = f - i;
+      const A = sc.frames[i], B = sc.frames[i + 1];
+      g.lineCap = 'round';
+      g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 1.5;
+      sc.labels.forEach(l => { g.beginPath(); g.arc(l.x * k, l.y * k, sc.ring * k, 0, 7); g.stroke(); });
+      const lw = Math.max(1.4, w / 260);
+      for (const pass of [0, 1]) {                                   // dark under-strokes, then mint draws
+        g.strokeStyle = pass ? 'rgba(61,220,151,0.55)' : 'rgba(6,20,14,0.3)';
+        g.lineWidth = lw + (pass ? 0 : 2);
+        for (let j = 0; j < A.length; j += 4) {                      // one stroke per draw so overlaps add up
+          const p = [0, 1, 2, 3].map(q => (A[j + q] + a * (B[j + q] - A[j + q])) * k);
+          const c = D.cap / 2, nx = -(p[3] - p[1]) * c, ny = (p[2] - p[0]) * c;
+          g.beginPath();
+          g.moveTo(p[0], p[1]); g.lineTo(p[2], p[3]);
+          g.moveTo(p[0] - nx, p[1] - ny); g.lineTo(p[0] + nx, p[1] + ny);
+          g.moveTo(p[2] - nx, p[3] - ny); g.lineTo(p[2] + nx, p[3] + ny);
+          g.stroke();
+        }
+      }
+      g.font = '600 12px "IBM Plex Sans", system-ui, sans-serif'; g.textAlign = 'center';
+      sc.labels.forEach(l => {
+        const tw = g.measureText(l.text).width + 12, x = l.x * k, y = l.y * k - sc.ring * k - 12;
+        g.fillStyle = 'rgba(10,13,18,0.82)'; g.beginPath(); g.roundRect(x - tw / 2, y - 10, tw, 20, 6); g.fill();
+        g.fillStyle = '#fff'; g.fillText(l.text, x, y + 4);
+      });
+    });
+    const show = () => { tOut.textContent = `t = ${(+tIn.value).toFixed(2)}`; draw(); };
+    imgs.forEach(im => im.addEventListener('load', show));
+    let playing = !still, seen = false, t0 = 0;
+    const loop = now => {                                             // 4 s of flow, 1.5 s hold, repeat
+      if (!playing || !seen) return;
+      const u = ((now - t0) / 5500) % 1;
+      tIn.value = Math.min(1, u / 0.73); show();
+      requestAnimationFrame(loop);
+    };
+    const setPlay = on => {
+      playing = on; btn.textContent = on ? 'Pause' : 'Play'; btn.setAttribute('aria-pressed', on);
+      if (on) { t0 = performance.now() - +tIn.value * 0.73 * 5500; requestAnimationFrame(loop); }
+    };
+    btn.addEventListener('click', () => setPlay(!playing));
+    tIn.addEventListener('input', () => { setPlay(false); show(); });
+    new IntersectionObserver(es => {
+      seen = es[0].isIntersecting;
+      if (seen && playing) { t0 = performance.now() - +tIn.value * 0.73 * 5500; requestAnimationFrame(loop); }
+    }, { threshold: 0.3 }).observe(pcs[0]);
+    if (still) { tIn.value = 1; setPlay(false); }
+    show();
+    addEventListener('resize', show);
+  }
+
   // ---------------------------------------------------------------- hero
   // Particles ride the same rectified flow from noise (left) into the two plan modes, which end on
   // the two robot videos: pick above, push below. Faint at the noise end, bright at the plan end.

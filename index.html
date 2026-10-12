@@ -52,8 +52,8 @@
     </div>
   </div>
   <div class="modes">
-    <figure class="mode"><video data-auto muted loop playsinline preload="none" poster="static/media/hw/hero_pick.jpg" src="static/media/hw/hero_pick.mp4" aria-label="SO-101 arm picks up the roll and places it in the square"></video><figcaption>plan → pick</figcaption></figure>
-    <figure class="mode"><video data-auto muted loop playsinline preload="none" poster="static/media/hw/hero_push.jpg" src="static/media/hw/hero_push.mp4" aria-label="SO-101 arm pushes the roll into the square"></video><figcaption>plan → push</figcaption></figure>
+    <figure class="mode"><video data-auto muted loop playsinline preload="none" poster="static/media/hw/hero_pick.jpg" src="static/media/hw/hero_pick.mp4" aria-label="SO-101 arm picks up the roll and places it in the square"></video><figcaption>plan → pick</figcaption><span class="chip r">2×</span></figure>
+    <figure class="mode"><video data-auto muted loop playsinline preload="none" poster="static/media/hw/hero_push.jpg" src="static/media/hw/hero_push.mp4" aria-label="SO-101 arm pushes the roll into the square"></video><figcaption>plan → push</figcaption><span class="chip r">2×</span></figure>
   </div>
 </div>
 
@@ -65,7 +65,7 @@
     <div class="stats reveal">
       <div class="stat"><div class="num">0.48 <s>→</s> 0.94</div><p>commanded-mode rate as plan guidance grows; the same guidance on π<sub>0</sub>'s native action distribution shows no reliable gain</p></div>
       <div class="stat"><div class="num">+0.54 <s>vs</s> +0.02</div><p>steer range of a plan command vs an ECoT-style language command, same downstream executor</p></div>
-      <div class="stat"><div class="num">≈388×</div><p>fewer training FLOPs for frozen-generator reranking to match generator retraining (Continued-BC, AWR); a reward table needs none</p></div>
+      <div class="stat"><div class="num">≈388×</div><p>fewer training FLOPs for frozen-generator reranking to match generator retraining (Continued-BC, AWR) on the two-cube task; a reward table needs none</p></div>
       <div class="stat"><div class="num">+0.19 <s>→</s> +0.65</div><p>LIBERO steer range when counterfactual demonstrations drive plan redundancy \(\widetilde R\) from 0.47 to 0.00</p></div>
     </div>
   </div>
@@ -160,8 +160,12 @@
       <figcaption>The plan is drawn every N steps; the action expert acts at every step, conditioned on the projected plan and fresh observations. Only the plan head, the projector, and a LoRA on the action expert are trained.</figcaption>
     </figure>
     <figure class="fig reveal">
-      <div class="media figvid" style="background:#fff"><video data-auto muted loop playsinline preload="none" poster="static/media/sim/route_a_reasoning_on_image.jpg" src="static/media/sim/route_a_reasoning_on_image.mp4" aria-label="Plan samples drawn on a camera frame, from noise to a committed decision"></video></div>
-      <figcaption>Plan draws from one reasoner on a real camera frame, from noise (t = 0) to committed (t = 1): the which-cube decision lives in the position channel, the grasp-angle decision in the yaw channel. Draws, not executions.</figcaption>
+      <div class="grid2 planfig">
+        <div><div class="ptitle">Which cube<span>the decision is in the position channel</span></div><canvas class="plancv" data-scene="0" aria-label="Plan draws converging on two cubes"></canvas></div>
+        <div><div class="ptitle">Grasp angle<span>the decision is in the yaw channel</span></div><canvas class="plancv" data-scene="1" aria-label="Plan draws converging on two grasp angles of one cube"></canvas></div>
+      </div>
+      <div class="slider plan-ctl"><button class="small-btn" id="plan-play" aria-pressed="true">Pause</button><input id="plan-t" type="range" min="0" max="1" step="0.002" value="0" aria-label="flow time t"><b id="plan-tv">t = 0.00</b></div>
+      <figcaption>One reasoner, 22 draws of the grasp keyframe on the scene image, integrated from noise (t = 0) to committed (t = 1). Drag t. With two cubes the draws split between the cubes; with one cube they split between two grasp angles 90° apart. Draws, not executions.</figcaption>
     </figure>
     <div class="cards reveal">
       <div class="card">
@@ -210,7 +214,7 @@
       <div class="split" style="margin-top:34px">
         <div>
           <h4>Avoiding the mean is not enough</h4>
-          <p class="muted" style="margin-top:8px">A square object admits two valid top-down grasps, 90° apart. A deterministic regression averages them into a diagonal grasp that misses the object. A winner-take-all selector removes invalid draws but collapses to one mode, so there is nothing left to steer or rerank. Only GPL covers both.</p>
+          <p class="muted" style="margin-top:8px">A square object admits two valid top-down grasps, 90° apart. A deterministic regression averages them into a diagonal grasp that misses the object. A winner-take-all selector, read out as its single most likely mode, removes invalid draws but collapses to one mode, so its steer range is zero. Of the three read-outs, only GPL covers both.</p>
         </div>
         <div>
           <div class="tablewrap">
@@ -261,7 +265,7 @@
         <div class="media"><span class="chip gpl">words: left · plan: right</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R2-conflict.jpg" src="static/media/sim/R2-conflict.mp4"></video></div>
       </div>
       <p class="cap"><b>Left:</b> asked in words for the right cube, the arm goes left. <b>Middle:</b> asked through the plan, it grasps the right cube. <b>Right:</b> words and plan disagree, and the arm follows the plan. Executor: a soft-token action head on a frozen ECoT-7B backbone.</p>
-      <p class="muted prose" style="margin-top:18px">Both arms command the identical downstream executor and are scored on the same closed-loop metric: grasp and lift the specified cube. Across three adapter seeds and 40 held-out configurations, GPL reaches a steer range of <b>+0.54</b>; the ECoT-style language arm reaches <b>+0.02</b>. Execution is not the bottleneck: the language arm grasps <em>more</em> reliably (0.50 vs 0.33), but it does not follow the command. When the two signals conflict, the plan decides the executed target in all <b>240</b> rollouts.</p>
+      <p class="muted prose" style="margin-top:18px">Both arms command the identical downstream executor and are scored on the same closed-loop metric: grasp and lift the specified cube. Across three adapter seeds and 40 held-out configurations, GPL reaches a steer range of <b>+0.54</b>; the ECoT-style language arm reaches <b>+0.02</b>. Execution is not the bottleneck: the language arm grasps <em>more</em> reliably (0.50 vs 0.33), but it largely ignores the command. When the two signals conflict, the plan decides the executed target in all <b>240</b> rollouts.</p>
     </div>
 
     <!-- adaptation -->
@@ -290,14 +294,15 @@
     <div class="eyebrow"><b>04</b>Real robot</div>
     <h2>The same operations on a real arm</h2>
     <p class="lead">We moved GPL onto a low-cost SO-101 arm. The task is to get a toilet-paper roll into a taped square, and the demonstrations contain two valid manners: pick the roll up, or push it along the table. The plan decides which.</p>
-    <div class="specs"><span>SO-101 arm</span><span>π<sub>0.5</sub> executor with the plan interface</span><span>plan = 54-D contact sketch</span><span>workspace + wrist cameras</span><span>clips at 2× speed</span></div>
+    <div class="specs"><span>SO-101 arm</span><span>π<sub>0.5</sub> trained jointly with the plan interface</span><span>plan = 54-D contact sketch</span><span>workspace + wrist cameras</span><span>clips at 2× speed</span></div>
+    <p class="note" style="margin-top:12px">Unlike the simulation recipe, which freezes the VLA and trains a LoRA, the robot executor is π<sub>0.5</sub> fine-tuned together with the plan projector on our SO-101 demonstrations. The steering and coverage clips come from the first session (Oct 2), which used an earlier, jerkier motion controller; the adaptation runs are from Oct 5.</p>
 
     <h3>Steering: one scene, two plans</h3>
     <div class="grid2">
       <div class="media"><span class="chip blue">plan: pick</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/steer_pick.jpg" src="static/media/hw/steer_pick.mp4"></video></div>
       <div class="media"><span class="chip amber">plan: push</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/steer_push.jpg" src="static/media/hw/steer_push.mp4"></video></div>
     </div>
-    <p class="cap">From nearly the same start, the reasoner draws one plan in the pick mode and one in the push mode (guidance w = 2). The executor picks the roll up and sets it in the square in one run, and slides it in with a closed gripper in the other.</p>
+    <p class="cap">From nearly the same start, the plan is the reasoner's first draw in the pick mode, then its first draw in the push mode. Conditioned on that plan (classifier-free plan guidance, w = 2), the executor picks the roll up and sets it in the square in one run, and slides it in with a closed gripper in the other. Over that session, the executed manner matched the requested one in 45 of 48 runs (pick 22/25, push 23/23).</p>
 
     <h3>Coverage: sampling without a command</h3>
     <div class="grid2">
@@ -307,41 +312,41 @@
     <p class="cap">No mode is requested: each run uses a plan sampled from the prior. Different draws lead to different manners, and both succeed. The two starts differ by about one roll width.</p>
 
     <h3>Outcome adaptation: when one manner stops working</h3>
-    <p class="muted prose">We then change the world so that one manner fails, without telling the robot. On a <b>raised target</b> a pushed roll cannot climb the platform; on a <b>lying roll</b> the gripper cannot pinch it from above. After each run the planner sees only success or failure, updates a per-mode reward table, and reweights its frozen plan draws. No network weights change.</p>
+    <p class="muted prose">We then change the world so that one manner fails, without telling the robot. On a <b>raised target</b> a pushed roll almost never climbs the platform (1 of 10 push runs in the baseline session); on a <b>lying roll</b> the gripper rarely lifts the roll from above. After each run the planner sees only success or failure, updates a per-mode reward table, and reweights its frozen plan draws. No network weights change.</p>
     <div class="grid4" style="margin-top:22px">
       <div class="media"><span class="chip bad">raised · push ✗</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/raised_push_fail.jpg" src="static/media/hw/raised_push_fail.mp4"></video></div>
       <div class="media"><span class="chip gpl">raised · pick ✓</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/raised_pick_ok.jpg" src="static/media/hw/raised_pick_ok.mp4"></video></div>
       <div class="media"><span class="chip bad">lying · pick ✗</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/lying_pick_fail.jpg" src="static/media/hw/lying_pick_fail.mp4"></video></div>
       <div class="media"><span class="chip gpl">lying · push ✓</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/lying_push_ok.jpg" src="static/media/hw/lying_push_ok.mp4"></video></div>
     </div>
-    <p class="cap"><b>The two shifts.</b> Raised target: a fixed push plan drives the roll into the platform's side (the run was stopped at 10 s), while a fixed pick plan sets it on top. Lying roll, first two runs of one adaptation sequence: the first plan is a pick and the gripper cannot lift the roll; after that single failure the planner switches to push, which succeeds.</p>
+    <p class="cap"><b>The two shifts.</b> Raised target: a fixed push plan drives the roll into the platform's side (the run was stopped at 10 s), while a fixed pick plan sets it on top. Lying roll, first two runs of one adaptation sequence: the first plan is a pick and the gripper does not lift the roll; after that single failure the planner switches to push, which succeeds.</p>
 
     <div class="viewer" style="margin-top:34px">
       <div class="media"><video id="v-demo" data-auto muted loop playsinline controls preload="none" poster="static/media/hw/adapt_demo.jpg" src="static/media/hw/adapt_demo.mp4" aria-label="Outcome adaptation on the SO-101 arm, with the planner's state shown beside the camera view"></video></div>
       <div class="panel">
-        <div class="eyebrow" style="margin:0">Now playing · 1×</div>
+        <div class="eyebrow" style="margin:0">Now playing · runs 2×, grids 4×</div>
         <div class="now" id="demo-now">Training data</div>
         <p id="demo-desc">In the demonstrations both manners work.</p>
         <div class="chapters" data-chapters="#v-demo" data-now="#demo-now" data-desc="#demo-desc">
             <button data-t="3.0" data-desc="In the demonstrations both manners work: from the same start, one demo picks the roll up and another pushes it (64 pick and 60 push demonstrations in the training split)."><span>0:03</span>Training data</button>
-            <button data-t="13.333" data-desc="The square now sits on a platform. A pushed roll cannot climb it; a picked roll can be set on top."><span>0:13</span>Shift 1: raised target</button>
+            <button data-t="13.333" data-desc="The square now sits on a platform. A pushed roll almost never climbs it; a picked roll can be set on top."><span>0:13</span>Shift 1: raised target</button>
             <button data-t="15.333" data-desc="The planner has no feedback yet and samples a push plan. The roll stops at the platform."><span>0:15</span>Run 1: a push plan</button>
             <button data-t="35.0" data-desc="The failure enters the reward table, and reweighting the same frozen plan draws moves almost all weight off push."><span>0:35</span>Reweighting</button>
             <button data-t="37.0" data-desc="The planner now draws pick plans. Shown is run 3, which sets the roll on the platform; in run 2 the operator nudged the roll, so it is not counted."><span>0:37</span>After the update: pick</button>
             <button data-t="44.733" data-desc="Later runs at 4× speed: the planner keeps choosing pick. The run marked * had the operator nudge the roll and is not counted."><span>0:44</span>The rest of the sequence</button>
-            <button data-t="50.733" data-desc="The roll lies on its side and cannot be pinched from above; a push still rolls it in."><span>0:50</span>Shift 2: lying roll</button>
-            <button data-t="52.733" data-desc="The gripper cannot lift the lying roll."><span>0:52</span>Run 1: a pick plan</button>
+            <button data-t="50.733" data-desc="The roll lies on its side and can rarely be picked up from above; a push still rolls it in."><span>0:50</span>Shift 2: lying roll</button>
+            <button data-t="52.733" data-desc="The gripper does not lift the lying roll."><span>0:52</span>Run 1: a pick plan</button>
             <button data-t="72.167" data-desc="After the failed pick, nearly all weight moves to push plans."><span>1:12</span>Reweighting</button>
             <button data-t="74.167" data-desc="The roll is pushed into the square."><span>1:14</span>Run 2: a push plan</button>
             <button data-t="80.6" data-desc="Runs 3–8 at 4× speed: the planner keeps pushing."><span>1:20</span>The rest of the sequence</button>
-            <button data-t="84.533" data-desc="Raised target: 4 of 4 sequences ended on pick after at most one failed push. Lying roll: 3 of 4 ended on push after at most one failed pick; the fourth, set up with the roll rotated 90°, stayed on pick."><span>1:24</span>Every sequence</button>
+            <button data-t="84.533" data-desc="Raised target: 4 of 4 sequences ended on pick after at most one failed push. Lying roll: 3 of 4 ended on push after at most one failed pick; the fourth, set up with the roll rotated 90°, stayed on pick (in that set-up picking was not disabled)."><span>1:24</span>Every sequence</button>
         </div>
       </div>
     </div>
 
     <div class="split" style="margin-top:44px">
       <div>
-        <h4>Every adaptation run</h4>
+        <h4>Every adaptation run at the final settings</h4>
         <div class="strip">
           <div class="seq head"><span>run</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
           <div class="seq"><span>raised 1</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick fail" title="pick, failure">✗</span><span class="cell push fail" title="push, failure">✗</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick fail" title="pick, failure">✗</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span></div>
@@ -353,17 +358,17 @@
 <div class="seq"><span>lying 3</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span></div>
         </div>
         <div class="legend"><span><i style="background:var(--action)"></i>pick plan</span><span><i style="background:var(--det)"></i>push plan</span><span>faded = failed run</span><span>* operator touched the roll, not counted</span></div>
-        <p class="note" style="margin-top:8px">Each row is one sequence of eight runs that starts from an empty reward table. A fourth lying-roll sequence, set up with the roll rotated 90°, stayed on pick and is not shown.</p>
+        <p class="note" style="margin-top:8px">Each row is one sequence of eight runs that starts from an empty reward table (β = 20, executor plan guidance w = 2). Earlier pilot sequences on the lying roll, with an older motion controller and other settings, are not shown. A fourth lying-roll sequence, set up with the roll rotated 90°, stayed on pick; in that set-up picking was not disabled (4 of its 8 runs succeeded, three of them by pushing).</p>
       </div>
       <div>
         <h4>Raised target: how often the roll ends on the square</h4>
         <div class="bars reveal">
-          <div class="bar"><span>always push (fixed plan)</span><div class="track"><div class="fill" style="width:10.0%;background:var(--det)"></div></div><b>1 / 10</b></div>
-          <div class="bar"><span>plan prior, no adaptation</span><div class="track"><div class="fill" style="width:50.0%;background:var(--control)"></div></div><b>5 / 10</b></div>
+          <div class="bar"><span>push plans</span><div class="track"><div class="fill" style="width:10.0%;background:var(--det)"></div></div><b>1 / 10</b></div>
+          <div class="bar"><span>prior draws, no adaptation</span><div class="track"><div class="fill" style="width:50.0%;background:var(--control)"></div></div><b>5 / 10</b></div>
           <div class="bar"><span>outcome adaptation, runs 2–8</span><div class="track"><div class="fill" style="width:81.5%;background:var(--gpl)"></div></div><b>22 / 27</b></div>
-          <div class="bar"><span>always pick (fixed plan)</span><div class="track"><div class="fill" style="width:91.7%;background:var(--action)"></div></div><b>11 / 12</b></div>
+          <div class="bar"><span>pick plans</span><div class="track"><div class="fill" style="width:91.7%;background:var(--action)"></div></div><b>11 / 12</b></div>
         </div>
-        <p class="note">Fixed-plan and prior runs come from a baseline session on the same day. Adaptation counts runs 2–8 of the four raised sequences, without the run the operator touched. Always-pick is the best fixed choice here, but it has to be known in advance; adaptation reaches it from outcomes, after at most one failed push per sequence.</p>
+        <p class="note">Push, prior, and pick rows come from a baseline session on the same day; pick and push plans pool fixed template plans, reasoner draws in that mode, and the prior draws by the mode they executed. Adaptation counts runs 2–8 of the four raised sequences, without the run the operator touched. Adaptation over prior draws: +0.32 (95% CI −0.01 to +0.60; Fisher p = 0.07; 27 vs 10 runs). Always picking is the best fixed choice here, but it has to be known in advance; adaptation reaches it from outcomes, after at most one failed push per sequence.</p>
       </div>
     </div>
   </div>
@@ -400,7 +405,7 @@
             "series":[{"name":"GPL − deterministic","color":"--gpl","y":[-0.234,0.153,0.569,0.794,0.791],"lo":[-0.382,-0.074,0.398,0.695,0.707],"hi":[-0.087,0.380,0.740,0.892,0.875]}]}</script>
           <input type="range" min="0" value="4" aria-label="ambiguity level">
           <output></output>
-          <p class="note">β is the fraction of demonstration mass on the preferred cube; scene and executor are fixed. Five seeds, bootstrap 95% intervals.</p>
+          <p class="note">β is the fraction of demonstration mass on the preferred cube; scene and executor are fixed. 95% t-intervals over five training seeds.</p>
         </div>
         <div>
           <p class="muted">Sweeping only the training distribution, the success-rate gap over the deterministic baseline moves from a net <b>penalty</b> on the unambiguous task to large gains under full bimodality. A strictly unimodal control locates the penalty: when the observation already resolves the decision, the intermediate plan adds no information and acts as a bottleneck.</p>
@@ -433,11 +438,10 @@
               "extra":["redundancy 0.234","redundancy 0.110","redundancy 0.052","redundancy 0.005","redundancy 0.000"]}]}</script>
           <input type="range" min="0" value="0" aria-label="counterfactual fraction">
           <output></output>
-          <p class="note">Five nested demonstration mixtures, six tasks, 360 episodes per arm; redundancy from the tuned, calibrated probe (E2); scene-clustered 95% bootstraps. Redundancy and steering are perfectly rank-anticorrelated (Spearman ρ = −1.00).</p>
+          <p class="note">Five nested demonstration mixtures, six tasks, 360 episodes per arm; redundancy from the tuned, calibrated probe (E2); scene-clustered 95% bootstraps. Redundancy and steering are perfectly rank-anticorrelated (Spearman ρ = −1.00). This sweep uses its own protocol (one record per episode), so its endpoints differ from the ten-task numbers in the text.</p>
         </div>
         <div>
           <p class="muted">LIBERO gives the sharpest causal test. With generic instructions that do not name the target, pretrained π<sub>0.5</sub> stays competent (140/300 successes; π<sub>0</sub> collapses to 3/300). Trained on π<sub>0.5</sub>'s own habit rollouts, the plan is largely redundant with the scene (\(\widetilde R = 0.47\)) and steering is weak. Replacing only those demonstrations with counterfactual pairs (either bowl, in the identical scene) drives \(\widetilde R\) to 0.00, holding executor, benchmark, and recipe fixed: the pooled oracle steer range rises from <b>+0.19</b> to <b>+0.65</b>, and all six matched adapter seeds favor the counterfactual set.</p>
-</div>
         </div>
       </div>
       <div class="grid3" style="margin-top:28px">
@@ -445,7 +449,7 @@
         <div class="media"><span class="chip gpl">counterfactual · plan: bowl 2</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/libero_battery_cf_s5_cmd_bowl2_t3_e5.jpg" src="static/media/sim/libero_battery_cf_s5_cmd_bowl2_t3_e5.mp4"></video></div>
         <div class="media"><span class="chip gpl">counterfactual · plan: bowl 1</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/libero_battery_cf_s5_cmd_bowl1_t3_e5.jpg" src="static/media/sim/libero_battery_cf_s5_cmd_bowl1_t3_e5.mp4"></video></div>
       </div>
-      <p class="cap"><b>Same scene, same executor, π<sub>0.5</sub>.</b> Trained on habit rollouts, the plan “bowl 2” is ignored and the arm takes bowl 1. Trained on counterfactual pairs, the arm takes bowl 2, and commanding bowl 1 takes bowl 1.</p>
+      <p class="cap"><b>One episode per clip, same scene, π<sub>0.5</sub>.</b> Trained on habit rollouts, the plan “bowl 2” is ignored here and the arm takes bowl 1. Trained on counterfactual pairs, the arm takes bowl 2, and commanding bowl 1 takes bowl 1. Over all grasped episodes, command 2 reaches its bowl 0.29 of the time with habit demonstrations and 0.67 with counterfactual ones.</p>
     </div>
   </div>
 </section>
@@ -462,7 +466,7 @@
       <button data-pane="maze" aria-selected="false">Maze</button>
     </div>
     <div data-pane-of="gen" data-pane="learned">
-      <p class="prose muted">Replace the hand-designed plan coordinates with a 2-D latent learned only from behavior: an autoencoder compresses demonstrated future end-effector trajectories and is frozen before any object, mode, or language label is seen. All three operations survive. Through π<sub>0</sub>, guiding the learned latent raises the commanded-mode rate from 0.50 (stock π<sub>0</sub>) to <b>0.78</b>, toward a 0.92 oracle-code ceiling, statistically indistinguishable from the hand-designed 3-D anchor (paired difference +0.03).</p>
+      <p class="prose muted">Replace the hand-designed plan coordinates with a 2-D latent learned only from behavior: an autoencoder compresses demonstrated future end-effector trajectories and is frozen before any object, mode, or language label is seen. All three operations survive. Through π<sub>0</sub>, guiding the learned latent raises the commanded-mode rate from 0.50 (stock π<sub>0</sub>) to <b>0.78</b>, against a 0.92 oracle-code ceiling. That is statistically indistinguishable from the hand-designed 3-D anchor under the same adapters and scenes (paired difference +0.03).</p>
       <figure class="fig reveal">
         <img src="static/img/fig_learned_coordinates.webp" alt="Coverage, invalid draws, and closed-loop commanded-mode rate for learned versus hand-designed plan coordinates" loading="lazy">
         <figcaption>Left: offline properties of draws straight from the plan generator, never executed. Right: closed loop through π<sub>0</sub>. 95% percentile-bootstrap intervals over training seeds and held-out layouts.</figcaption>
@@ -486,7 +490,7 @@
       <p class="note">Rollouts run through π<sub>0</sub> with contact-sketch LoRAs: one generalist for pick-and-place and sweep (plans from the reasoner), and specialists for grasp yaw and pick-or-push (oracle plans).</p>
       <figure class="fig reveal">
         <img src="static/img/fig_contact_sketch_battery.webp" alt="Coverage, steering, and outcome adaptation across four task families" loading="lazy">
-        <figcaption>Coverage and steering are scored in plan space (each drawn sketch assigned to its nearest mode centroid; no executor run). Outcome adaptation reranks the frozen prior from measured rollout outcomes under a family-specific physical shift.</figcaption>
+        <figcaption>Coverage and steering are scored in plan space (each drawn sketch assigned to its nearest mode centroid; no executor run). Outcome adaptation reranks the frozen prior using the success of a scripted controller executing each mode under a family-specific physical shift.</figcaption>
       </figure>
     </div>
     <div data-pane-of="gen" data-pane="robocasa" hidden>
@@ -546,6 +550,7 @@
 <dialog class="lightbox" id="lightbox"><img alt=""></dialog>
 
 <script src="static/js/flow.js"></script>
+<script src="static/js/plan_samples.js"></script>
 <script src="static/js/main.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
