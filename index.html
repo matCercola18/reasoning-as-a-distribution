@@ -192,7 +192,7 @@
   <div class="wrap">
     <div class="eyebrow"><b>03</b>Three capabilities</div>
     <h2>Sample, steer, adapt</h2>
-    <p class="lead">We call a reasoning state <em>addressable</em> when, at inference time, it can be sampled to obtain distinct valid decisions, conditioned to select one, and reweighted by outcome. Each tab shows SimplerEnv rollouts through π<sub>0</sub> and the measured result.</p>
+    <p class="lead">We call a reasoning state <em>addressable</em> when, at inference time, it can be sampled to obtain distinct valid decisions, conditioned to select one, and reweighted by outcome. Each tab shows SimplerEnv rollouts next to the measured result.</p>
     <div class="seg tabs" data-tabs="cap" role="tablist">
       <button data-pane="coverage" aria-selected="true">Coverage</button>
       <button data-pane="steering" aria-selected="false">Steering</button>
@@ -260,7 +260,7 @@
         <div class="media"><span class="chip gpl">plan: right cube</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R2-P-R.jpg" src="static/media/sim/R2-P-R.mp4"></video></div>
         <div class="media"><span class="chip gpl">words: left · plan: right</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R2-conflict.jpg" src="static/media/sim/R2-conflict.mp4"></video></div>
       </div>
-      <p class="cap"><b>Left:</b> asked in words for the right cube, the arm goes left. <b>Middle:</b> asked through the plan, it grasps the right cube. <b>Right:</b> words and plan disagree, and the arm follows the plan.</p>
+      <p class="cap"><b>Left:</b> asked in words for the right cube, the arm goes left. <b>Middle:</b> asked through the plan, it grasps the right cube. <b>Right:</b> words and plan disagree, and the arm follows the plan. Executor: a soft-token action head on a frozen ECoT-7B backbone.</p>
       <p class="muted prose" style="margin-top:18px">Both arms command the identical downstream executor and are scored on the same closed-loop metric: grasp and lift the specified cube. Across three adapter seeds and 40 held-out configurations, GPL reaches a steer range of <b>+0.54</b>; the ECoT-style language arm reaches <b>+0.02</b>. Execution is not the bottleneck: the language arm grasps <em>more</em> reliably (0.50 vs 0.33), but it does not follow the command. When the two signals conflict, the plan decides the executed target in all <b>240</b> rollouts.</p>
     </div>
 
@@ -271,7 +271,7 @@
         <div class="media"><span class="chip bad">pick · enlarged can ✗</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R3-pick-big.jpg" src="static/media/sim/R3-pick-big.mp4"></video></div>
         <div class="media"><span class="chip gpl">push · enlarged can ✓</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R3-push-big.jpg" src="static/media/sim/R3-push-big.mp4"></video></div>
       </div>
-      <p class="cap"><b>A shift that breaks one strategy.</b> Picking works on the training-size can; an enlarged can tips over and falls when picked, while pushing it onto the pad still works. A policy that kept both plans does not need to relearn how to act, only which plans to draw.</p>
+      <p class="cap"><b>A shift that breaks one strategy.</b> Picking works on the training-size can; an enlarged can tips over and falls when picked, while pushing it onto the pad still works. A policy that kept both plans does not need to relearn how to act, only which plans to draw. Soft-token executor on a frozen ECoT-7B backbone, with reasoner plans.</p>
       <div class="split" style="margin-top:30px">
         <p class="muted">Steering needs someone to say what they want. Outcome adaptation infers it from deployment: candidate plans are drawn from the frozen generator, scored from the agent's own rollout outcomes, and reweighted with Boltzmann weights. Neither the generator nor the VLA is updated.</p>
         <p class="muted">Why rerank plans rather than action samples? A no-plan π<sub>0</sub> matched in scenes, capacity, and critic architecture fails to reduce cost, and the gap grows with the sample budget: action noise mostly produces small variations of one committed strategy rather than independently successful alternatives.</p>
@@ -436,7 +436,7 @@
           <p class="note">Five nested demonstration mixtures, six tasks, 360 episodes per arm; redundancy from the tuned, calibrated probe (E2); scene-clustered 95% bootstraps. Redundancy and steering are perfectly rank-anticorrelated (Spearman ρ = −1.00).</p>
         </div>
         <div>
-          <p class="muted">LIBERO gives the sharpest causal test. With generic instructions that do not name the target, pretrained π<sub>0.5</sub> stays competent (140/300 successes; π<sub>0</sub> collapses to 3/300). Trained on π<sub>0.5</sub>'s own habit rollouts, the plan is largely redundant with the scene (\(\widetilde R = 0.47\)) and steering is weak. Replacing only those demonstrations with counterfactual pairs (either bowl, in the identical scene) drives \(\widetilde R\) to 0.00, holding executor, benchmark, and recipe fixed: the pooled steer range rises from <b>+0.19</b> to <b>+0.65</b>, in all six matched adapter seeds.</p>
+          <p class="muted">LIBERO gives the sharpest causal test. With generic instructions that do not name the target, pretrained π<sub>0.5</sub> stays competent (140/300 successes; π<sub>0</sub> collapses to 3/300). Trained on π<sub>0.5</sub>'s own habit rollouts, the plan is largely redundant with the scene (\(\widetilde R = 0.47\)) and steering is weak. Replacing only those demonstrations with counterfactual pairs (either bowl, in the identical scene) drives \(\widetilde R\) to 0.00, holding executor, benchmark, and recipe fixed: the pooled oracle steer range rises from <b>+0.19</b> to <b>+0.65</b>, and all six matched adapter seeds favor the counterfactual set.</p>
 </div>
         </div>
       </div>
@@ -483,6 +483,7 @@
         <div class="media"><span class="chip gpl">plan: right cube</span><video id="v-fam-b" data-auto muted loop playsinline preload="none" poster="static/media/sim/R5-s1.cmd1.jpg" src="static/media/sim/R5-s1.cmd1.mp4"></video></div>
       </div>
       <p class="cap" id="cap-fam">Same start, two plans: one sends the arm to the left cube, the other to the right cube; each is grasped.</p>
+      <p class="note">Rollouts run through π<sub>0</sub> with contact-sketch LoRAs: one generalist for pick-and-place and sweep (plans from the reasoner), and specialists for grasp yaw and pick-or-push (oracle plans).</p>
       <figure class="fig reveal">
         <img src="static/img/fig_contact_sketch_battery.webp" alt="Coverage, steering, and outcome adaptation across four task families" loading="lazy">
         <figcaption>Coverage and steering are scored in plan space (each drawn sketch assigned to its nearest mode centroid; no executor run). Outcome adaptation reranks the frozen prior from measured rollout outcomes under a family-specific physical shift.</figcaption>

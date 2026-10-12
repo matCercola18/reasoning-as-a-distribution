@@ -26,3 +26,24 @@ node static/js/flow.js          # self-check of the playground's flow math
 
 Chart values are copied from the paper's result files; each chart's JSON sits next to it in
 `index.html`.
+
+## Media provenance
+
+Simulation clips are web encodes (H.264, CRF 28) of the explainer-video clip pool
+(`latent-reasoning-vla/video/media/clips/<same name>.mp4`), trimmed to the action.
+`adapt_demo.mp4` is a re-encode of `results/so101_demo/outcome_adaptation_demo.mp4`.
+The other SO-101 clips are workspace-camera cuts at 2× real time from the robot sessions
+(public HF dataset `so101_gpl_eval`):
+
+| clip | session | run id | plan | outcome |
+|---|---|---|---|---|
+| `hero_pick` | r2_g0 | 20261002-171142-003 | r:pick | success |
+| `hero_push` | r2_g0 | 20261002-171142-002 | r:push | success |
+| `steer_pick` | r2_g0 | 20261002-142457-039 | r:pick | success |
+| `steer_push` | r2_g0 | 20261002-142457-046 | r:push | success |
+| `cover_pick` | r2_g0 | 20261002-142457-049 | r (prior draw) | success |
+| `cover_push` | r2_g0 | 20261002-142457-051 | r (prior draw) | success |
+| `raised_pick_ok` | raised_base | 20261005-141712-006 | pick | success |
+| `raised_push_fail` | raised_base | 20261005-141712-007 | push | failure |
+| `lying_pick_fail` | lying_2 | 20261005-122538-001 | adapt → pick | failure |
+| `lying_push_ok` | lying_2 | 20261005-122538-002 | adapt → push | success |
