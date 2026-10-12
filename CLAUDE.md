@@ -31,8 +31,9 @@ media provenance table; this file has the context and rules that are not visible
   (`latent-reasoning-vla/video/out/short_1min.mp4`): its outcome-adaptation numbers were removed
   from the paper.
 - No credentials in the repo or in commands. Pushes use `GIT_TOKEN` from
-  `/home/cercola/Continuous-Reasoning/.env` through a `GIT_ASKPASS` helper (the `gh` CLI token on
-  virgo is invalid).
+  `/home/cercola/Continuous-Reasoning/.env` through a `GIT_ASKPASS` helper: a two-line script that prints
+  `x-access-token` for the username prompt and `$GIT_TOKEN` for the password prompt (the `gh` CLI
+  token on virgo is invalid).
 
 ## Where the media comes from
 
