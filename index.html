@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reasoning as a Distribution</title>
+<meta name="description" content="GPL represents a VLA's intermediate decision as a distribution over plans, so plans can be sampled, steered, and reweighted by deployment outcomes without retraining the VLA.">
+<meta property="og:title" content="Reasoning as a Distribution: Generative Plan Latents for VLA Models">
+<meta property="og:description" content="Sample, steer, and adapt the plan of a vision-language-action model at deployment, without retraining it.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='9' cy='16' r='6.5' fill='%23009e73'/%3E%3Ccircle cx='23' cy='16' r='6.5' fill='%23009e73' fill-opacity='.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top"><i></i>GPL</a>
+    <nav>
+      <a href="#idea">Idea</a>
+      <a href="#method">Method</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#robot">Real robot</a>
+      <a href="#redundancy">When it matters</a>
+      <a href="#generality">Generality</a>
+      <a href="#bibtex">BibTeX</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============================================================ hero -->
+<div class="hero" id="top">
+  <canvas id="hero-flow" aria-hidden="true"></canvas>
+  <div class="hero-text">
+    <div class="venue">arXiv preprint · 2026</div>
+    <h1>Reasoning as a <span class="grad">Distribution</span></h1>
+    <p class="subtitle">Generative Plan Latents for Vision–Language–Action Models</p>
+    <!-- TODO: author list, links and affiliations -->
+    <p class="authors">TODO: Author Names</p>
+    <p class="affil">TODO: Affiliations</p>
+    <div class="links">
+      <a class="btn primary" href="#" title="TODO: arXiv PDF link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>Paper</a>
+      <a class="btn" href="#" title="TODO: arXiv abstract page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>arXiv</a>
+      <a class="btn" href="#" title="TODO: code link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></svg>Code</a>
+      <a class="btn" href="#robot"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Robot videos</a>
+      <a class="btn" href="#bibtex">BibTeX</a>
+    </div>
+  </div>
+  <div class="modes">
+    <figure class="mode"><video data-auto muted loop playsinline preload="none" poster="static/media/hw/hero_pick.jpg" src="static/media/hw/hero_pick.mp4" aria-label="SO-101 arm picks up the roll and places it in the square"></video><figcaption>plan → pick</figcaption></figure>
+    <figure class="mode"><video data-auto muted loop playsinline preload="none" poster="static/media/hw/hero_push.jpg" src="static/media/hw/hero_push.mp4" aria-label="SO-101 arm pushes the roll into the square"></video><figcaption>plan → push</figcaption></figure>
+  </div>
+</div>
+
+<!-- ============================================================ claims -->
+<section class="claims">
+  <div class="wrap">
+    <p class="claim dim reveal">Reasoning VLAs compress the decision they make before acting into a single representation. When several plans are valid, that commitment hides the alternatives.</p>
+    <p class="claim reveal">GPL keeps the decision as a <em>distribution over plans</em>, so at deployment it can be sampled, steered, and reweighted by outcomes, without retraining the VLA.</p>
+    <div class="stats reveal">
+      <div class="stat"><div class="num">0.48 <s>→</s> 0.94</div><p>commanded-mode rate as plan guidance grows; the same guidance on π<sub>0</sub>'s native action distribution shows no reliable gain</p></div>
+      <div class="stat"><div class="num">+0.54 <s>vs</s> +0.02</div><p>steer range of a plan command vs an ECoT-style language command, same downstream executor</p></div>
+      <div class="stat"><div class="num">≈388×</div><p>fewer training FLOPs for frozen-generator reranking to match generator retraining (Continued-BC, AWR); a reward table needs none</p></div>
+      <div class="stat"><div class="num">+0.19 <s>→</s> +0.65</div><p>LIBERO steer range when counterfactual demonstrations drive plan redundancy \(\widetilde R\) from 0.47 to 0.00</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ abstract -->
+<section id="abstract" class="alt">
+  <div class="wrap abstract">
+    <div class="eyebrow">Abstract</div>
+    <p>Vision–Language–Action (VLA) policies increasingly reason before acting, but existing reasoning models compress this intermediate decision into a single representation. When several plans are valid, this commitment hides alternatives that could otherwise be selected or revised. We introduce the Generative Plan Latent (GPL), which represents the reasoning state as a low-dimensional conditional distribution over plans, such as which object, grasp, or route to use. This makes the reasoning state <em>addressable</em>: without retraining the VLA, plans can be sampled (<em>coverage</em>), selected on request (<em>steering</em>), and reweighted by deployment outcomes (<em>outcome adaptation</em>). We test all three on SimplerEnv manipulation with π<sub>0</sub>, and extend the analysis to RoboCasa, LIBERO, and a maze domain. Steering the plan raises the fraction of executions that follow the request from 0.48 to 0.94, while the same guidance on the native action distribution shows no reliable gain. Finally, we show that an explicit plan is most useful when it carries decision information not already determined by the observation.</p>
+  </div>
+</section>
+
+<!-- ============================================================ idea -->
+<section id="idea">
+  <div class="wrap">
+    <div class="eyebrow"><b>01</b>The idea</div>
+    <h2>Keep the alternatives at the decision bottleneck</h2>
+    <p class="lead">A robot faces two identical cubes, and the instruction names neither. Both cubes are valid targets. A reasoning state that must output one decision either averages them, which yields a plan between the cubes, or commits to one, which hides the other. GPL keeps the decision as a distribution \(p_\theta(z \mid c)\) over plans \(z\).</p>
+    <div class="trip reveal">
+      <figure class="flowcard">
+        <canvas data-flow="mse" aria-label="A regression readout lands between the two cubes"></canvas>
+        <h4>Regression readout</h4>
+        <p>One plan: the mean of the valid ones, which lies between the cubes.</p>
+        <span class="tag bad">invalid</span>
+      </figure>
+      <figure class="flowcard">
+        <canvas data-flow="wta" aria-label="A winner-take-all readout always picks the same cube"></canvas>
+        <h4>Winner-take-all</h4>
+        <p>One valid plan, the same one every time. The other cube is gone.</p>
+        <span class="tag warn">valid · committed</span>
+      </figure>
+      <figure class="flowcard">
+        <canvas data-flow="gpl" aria-label="GPL flows noise to plans on both cubes"></canvas>
+        <h4>GPL</h4>
+        <p>A rectified flow maps noise to plans. Draws land on a cube, and both cubes stay reachable.</p>
+        <span class="tag good">valid · addressable</span>
+      </figure>
+    </div>
+    <div class="row" style="justify-content:center;margin-top:18px"><button class="small-btn" id="resample">↻ Resample</button></div>
+
+    <h3>Play with the plan distribution</h3>
+    <p class="prose muted">Because the alternatives stay explicit, the same distribution can be <b>steered</b> toward a requested plan, or <b>reweighted</b> by what happened when plans were tried. Neither changes the generator's weights.</p>
+    <div class="playground">
+      <canvas id="pg-canvas" aria-label="Flow paths from noise to plans"></canvas>
+      <div class="pg-side">
+        <div class="seg" role="tablist">
+          <button data-pgmode="steer" aria-selected="true">Steering</button>
+          <button data-pgmode="adapt" aria-selected="false">Outcome adaptation</button>
+        </div>
+        <div data-pgpane="steer">
+          <h4>Request a cube</h4>
+          <p>Pick a cube and raise the guidance dose \(w\). Guidance bends the flow, so more noise draws end on the requested cube. At \(w = 0\) the flow is the unchanged prior.</p>
+          <div class="seg">
+            <button data-request="0" aria-pressed="true">left cube</button>
+            <button data-request="1" aria-pressed="false">right cube</button>
+          </div>
+          <div class="slider"><span>dose \(w\)</span><input id="pg-dose" type="range" min="0" max="8" step="0.1" value="0"><b id="pg-w">0.0</b></div>
+          <div class="readout"><div>draws on the requested cube<b id="pg-share">–</b></div></div>
+        </div>
+        <div data-pgpane="adapt" hidden>
+          <h4>Learn from outcomes</h4>
+          <p>After a hidden change, the left cube fails 80% of the time and the right one 10%. Each deployment picks one of 16 frozen draws, observes success or failure, and updates a per-mode reward table. Draws are reweighted by \(\exp(\beta\,\hat s)\); dot size is the weight.</p>
+          <div class="row">
+            <button class="small-btn go" id="pg-run1">Deploy once</button>
+            <button class="small-btn go" id="pg-run10">Deploy ×10</button>
+            <button class="small-btn" id="pg-reset">Reset</button>
+          </div>
+          <div class="slider"><span>\(\beta\)</span><input id="pg-beta" type="range" min="0" max="20" step="1" value="8"><b id="pg-b">8</b></div>
+          <div class="readout">
+            <div>left: successes / tries<b id="pg-t0">–</b></div>
+            <div>right: successes / tries<b id="pg-t1">–</b></div>
+            <div>expected success<b id="pg-exp">–</b></div>
+          </div>
+          <div class="note">P(left) under the reweighted draws: <b id="pg-left">–</b></div>
+          <div class="log" id="pg-log"></div>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:12px">A one-dimensional toy of the mechanism, not data from the paper: the paths are the exact rectified-flow ODE for a two-mode plan distribution, and guidance tilts that distribution toward the requested mode. The measured results are in the sections below.</p>
+  </div>
+</section>
+
+<!-- ============================================================ method -->
+<section id="method" class="alt">
+  <div class="wrap">
+    <div class="eyebrow"><b>02</b>Method</div>
+    <h2>A generative plan latent inside a pretrained VLA</h2>
+    <p class="lead">GPL inserts a generative variable upstream of the action model, where the task-level decision is made. The frozen VLA backbone encodes the observation \(o\) and instruction \(l\) into \(c\). A small rectified-flow head samples a plan \(z \sim p_\theta(z \mid c)\), and a projector injects it as \(k = 8\) soft tokens into the executor's prefix. Sampling, guidance, and outcome reranking all act on this one plan distribution.</p>
+    <figure class="fig reveal">
+      <img src="static/img/fig_architecture.webp" alt="GPL architecture: frozen VLA backbone, generative plan latent, latent projector, action expert" loading="lazy">
+      <figcaption>The plan is drawn every N steps; the action expert acts at every step, conditioned on the projected plan and fresh observations. Only the plan head, the projector, and a LoRA on the action expert are trained.</figcaption>
+    </figure>
+    <figure class="fig reveal">
+      <div class="media figvid" style="background:#fff"><video data-auto muted loop playsinline preload="none" poster="static/media/sim/route_a_reasoning_on_image.jpg" src="static/media/sim/route_a_reasoning_on_image.mp4" aria-label="Plan samples drawn on a camera frame, from noise to a committed decision"></video></div>
+      <figcaption>Plan draws from one reasoner on a real camera frame, from noise (t = 0) to committed (t = 1): the which-cube decision lives in the position channel, the grasp-angle decision in the yaw channel. Draws, not executions.</figcaption>
+    </figure>
+    <div class="cards reveal">
+      <div class="card">
+        <div class="k">sample</div>
+        <h4>Generative plan model</h4>
+        <div class="eq">\[\mathcal{L}_{\text{plan}}=\mathbb{E}\,\big\lVert v_\theta(z_t,t,c)-(z-z_0)\big\rVert^2\]</div>
+        <p>Rectified flow with \(z_t=(1-t)z_0+tz\). A draw takes a handful of Euler steps, about 80× cheaper than one sampled reasoning chain in a matched ECoT comparison.</p>
+      </div>
+      <div class="card">
+        <div class="k">steer</div>
+        <h4>Guidance on the plan</h4>
+        <div class="eq">\[v_{\text{guide}}=v_\theta+w\,\nabla_{z_t}\log q_\psi(y\mid z_t,t,c)\]</div>
+        <p>A light noise-conditioned classifier biases the flow toward a requested property \(y\), such as which object or route. \(w=0\) recovers the prior; nothing is retrained when the command changes.</p>
+      </div>
+      <div class="card">
+        <div class="k">adapt</div>
+        <h4>Outcome reweighting</h4>
+        <div class="eq">\[p_{\text{adapt}}(z\mid c)\propto p_\theta(z\mid c)\,e^{\beta s(c,z)}\]</div>
+        <p>A deployment score \(s\), from a learned critic or a per-mode reward table, reranks frozen draws. The generator and the VLA stay fixed.</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:20px">On π<sub>0</sub>, the projector and a LoRA on the action expert are trained only with π<sub>0</sub>'s native action objective, and plan tokens are dropped at random during training (classifier-free guidance). Baselines: stock π<sub>0</sub>, a plan-less control with the same weights, and a dedicated no-plan adapter trained at the same budget.</p>
+  </div>
+</section>
+
+<!-- ============================================================ capabilities -->
+<section id="capabilities">
+  <div class="wrap">
+    <div class="eyebrow"><b>03</b>Three capabilities</div>
+    <h2>Sample, steer, adapt</h2>
+    <p class="lead">We call a reasoning state <em>addressable</em> when, at inference time, it can be sampled to obtain distinct valid decisions, conditioned to select one, and reweighted by outcome. Each tab shows SimplerEnv rollouts through π<sub>0</sub> and the measured result.</p>
+    <div class="seg tabs" data-tabs="cap" role="tablist">
+      <button data-pane="coverage" aria-selected="true">Coverage</button>
+      <button data-pane="steering" aria-selected="false">Steering</button>
+      <button data-pane="adaptation" aria-selected="false">Outcome adaptation</button>
+    </div>
+
+    <!-- coverage -->
+    <div data-pane-of="cap" data-pane="coverage">
+      <div class="grid3">
+        <div class="media"><span class="chip gpl">GPL draw 1 → left</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R1-sample.a.jpg" src="static/media/sim/R1-sample.a.mp4"></video></div>
+        <div class="media"><span class="chip gpl">GPL draw 2 → right</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R1-sample.b.jpg" src="static/media/sim/R1-sample.b.mp4"></video></div>
+        <div class="media"><span class="chip amber">deterministic plan</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R1-det.jpg" src="static/media/sim/R1-det.mp4"></video></div>
+      </div>
+      <p class="cap"><b>Two unguided draws, one scene.</b> The first commits to the left cube and grasps it; the second commits to the right cube (that grasp slips after the lift). <b>Right:</b> in another two-cube scene, the deterministic mean plan sends the arm toward the empty space between the cubes, and it never grasps.</p>
+      <div class="split" style="margin-top:34px">
+        <div>
+          <h4>Avoiding the mean is not enough</h4>
+          <p class="muted" style="margin-top:8px">A square object admits two valid top-down grasps, 90° apart. A deterministic regression averages them into a diagonal grasp that misses the object. A winner-take-all selector removes invalid draws but collapses to one mode, so there is nothing left to steer or rerank. Only GPL covers both.</p>
+        </div>
+        <div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th></th><th>invalid draw ↓</th><th>P(cover all) ↑</th><th>steer range ↑</th><th>rerank feasible ↑</th></tr></thead>
+              <tbody>
+                <tr><td>deterministic MSE</td><td>1.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+                <tr><td>deterministic WTA</td><td>0.03</td><td>0.00</td><td>0.00</td><td>0.50</td></tr>
+                <tr class="ours"><td>GPL (flow)</td><td>0.14</td><td>1.00</td><td>+0.31</td><td>1.00</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="note" style="margin-top:8px">Eight held-out layouts, five seeds, K = 16 draws.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- steering -->
+    <div data-pane-of="cap" data-pane="steering" hidden>
+      <div class="split">
+        <div>
+          <div class="ctl"><span>request</span>
+            <div class="seg" data-switch="#v-steer" data-caption="#cap-steer">
+              <button aria-pressed="true" data-src="static/media/sim/R1-guided-L.mp4" data-cap="Guided toward the <b>left</b> cube (w = 8): the arm takes it and holds it.">left cube</button>
+              <button aria-pressed="false" data-src="static/media/sim/R1-guided-R.mp4" data-cap="Same scene, guided toward the <b>right</b> cube: the arm commits to it (this grasp slips after the lift).">right cube</button>
+            </div>
+          </div>
+          <div class="media"><span class="chip gpl">π₀ + guided plan</span><video id="v-steer" data-auto muted loop playsinline preload="none" poster="static/media/sim/R1-guided-L.jpg" src="static/media/sim/R1-guided-L.mp4"></video></div>
+          <p class="cap" id="cap-steer">Guided toward the <b>left</b> cube (w = 8): the arm takes it and holds it.</p>
+        </div>
+        <div class="chart" data-chart>
+          <h4>The plan is the stronger handle</h4>
+          <script type="application/json">{"aria":"Commanded-mode rate versus guidance dose for GPL and action-level guidance",
+            "x":[0,1,2,4,8],"xname":"w","xlab":"guidance dose w","ylab":"commanded-mode rate","ylim":[0.25,1.05],
+            "yticks":[0.3,0.5,0.7,0.9],"ref":0.5,"refLabel":"chance","start":4,
+            "series":[
+              {"name":"GPL (plan guidance)","color":"--gpl","y":[0.479,0.604,0.750,0.885,0.938],"lo":[0.312,0.417,0.604,0.750,0.844],"hi":[0.646,0.771,0.875,1.0,1.0]},
+              {"name":"π₀ action-chunk guidance","color":"--action","dash":true,"y":[0.573,0.677,0.667,0.521,0.448],"lo":[0.417,0.5,0.396,0.354,0.292],"hi":[0.688,0.833,0.833,0.698,0.562]}]}</script>
+          <input type="range" min="0" value="4" aria-label="guidance dose">
+          <output></output>
+          <p class="note">Each arm has its own matched executor: GPL keeps its plan adapter; the action arm is a dedicated no-plan adapter guided through π<sub>0</sub>'s native 128-D action chunk. n = 96 episodes per dose, 95% cluster-bootstrap intervals.</p>
+        </div>
+      </div>
+      <h3>Plan vs language, same executor</h3>
+      <div class="grid3">
+        <div class="media"><span class="chip ">words: “right cube”</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R2-W-R.jpg" src="static/media/sim/R2-W-R.mp4"></video></div>
+        <div class="media"><span class="chip gpl">plan: right cube</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R2-P-R.jpg" src="static/media/sim/R2-P-R.mp4"></video></div>
+        <div class="media"><span class="chip gpl">words: left · plan: right</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R2-conflict.jpg" src="static/media/sim/R2-conflict.mp4"></video></div>
+      </div>
+      <p class="cap"><b>Left:</b> asked in words for the right cube, the arm goes left. <b>Middle:</b> asked through the plan, it grasps the right cube. <b>Right:</b> words and plan disagree, and the arm follows the plan.</p>
+      <p class="muted prose" style="margin-top:18px">Both arms command the identical downstream executor and are scored on the same closed-loop metric: grasp and lift the specified cube. Across three adapter seeds and 40 held-out configurations, GPL reaches a steer range of <b>+0.54</b>; the ECoT-style language arm reaches <b>+0.02</b>. Execution is not the bottleneck: the language arm grasps <em>more</em> reliably (0.50 vs 0.33), but it does not follow the command. When the two signals conflict, the plan decides the executed target in all <b>240</b> rollouts.</p>
+    </div>
+
+    <!-- adaptation -->
+    <div data-pane-of="cap" data-pane="adaptation" hidden>
+      <div class="grid3">
+        <div class="media"><span class="chip gpl">pick · training-size can ✓</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R3-pick-small.jpg" src="static/media/sim/R3-pick-small.mp4"></video></div>
+        <div class="media"><span class="chip bad">pick · enlarged can ✗</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R3-pick-big.jpg" src="static/media/sim/R3-pick-big.mp4"></video></div>
+        <div class="media"><span class="chip gpl">push · enlarged can ✓</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R3-push-big.jpg" src="static/media/sim/R3-push-big.mp4"></video></div>
+      </div>
+      <p class="cap"><b>A shift that breaks one strategy.</b> Picking works on the training-size can; an enlarged can tips over and falls when picked, while pushing it onto the pad still works. A policy that kept both plans does not need to relearn how to act, only which plans to draw.</p>
+      <div class="split" style="margin-top:30px">
+        <p class="muted">Steering needs someone to say what they want. Outcome adaptation infers it from deployment: candidate plans are drawn from the frozen generator, scored from the agent's own rollout outcomes, and reweighted with Boltzmann weights. Neither the generator nor the VLA is updated.</p>
+        <p class="muted">Why rerank plans rather than action samples? A no-plan π<sub>0</sub> matched in scenes, capacity, and critic architecture fails to reduce cost, and the gap grows with the sample budget: action noise mostly produces small variations of one committed strategy rather than independently successful alternatives.</p>
+      </div>
+      <figure class="fig reveal">
+        <img src="static/img/fig_cost_si_cycle_extended.webp" alt="Outcome adaptation results: regret over adaptation rounds and final success versus training FLOPs" loading="lazy">
+        <figcaption><b>A</b> · Three-object rearrangement: every order is valid but they differ in chained end-effector path length. A critic fit on the model's own rollouts reranks orders and drives regret down; shuffled feedback does not (5 seeds). <b>B</b> · Two cubes with hidden, unequal success rates: reranking frozen plan draws matches Continued-BC and AWR, which retrain the generator, within an equivalence margin, at ≈388× fewer training FLOPs for the critic and none for the reward table (10 seeds, 95% CIs).</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ real robot -->
+<section id="robot" class="alt">
+  <div class="wrap">
+    <div class="eyebrow"><b>04</b>Real robot</div>
+    <h2>The same operations on a real arm</h2>
+    <p class="lead">We moved GPL onto a low-cost SO-101 arm. The task is to get a toilet-paper roll into a taped square, and the demonstrations contain two valid manners: pick the roll up, or push it along the table. The plan decides which.</p>
+    <div class="specs"><span>SO-101 arm</span><span>π<sub>0.5</sub> executor with the plan interface</span><span>plan = 54-D contact sketch</span><span>workspace + wrist cameras</span><span>clips at 2× speed</span></div>
+
+    <h3>Steering: one scene, two plans</h3>
+    <div class="grid2">
+      <div class="media"><span class="chip blue">plan: pick</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/steer_pick.jpg" src="static/media/hw/steer_pick.mp4"></video></div>
+      <div class="media"><span class="chip amber">plan: push</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/steer_push.jpg" src="static/media/hw/steer_push.mp4"></video></div>
+    </div>
+    <p class="cap">From nearly the same start, the reasoner draws one plan in the pick mode and one in the push mode (guidance w = 2). The executor picks the roll up and sets it in the square in one run, and slides it in with a closed gripper in the other.</p>
+
+    <h3>Coverage: sampling without a command</h3>
+    <div class="grid2">
+      <div class="media"><span class="chip blue">prior draw → pick</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/cover_pick.jpg" src="static/media/hw/cover_pick.mp4"></video></div>
+      <div class="media"><span class="chip amber">prior draw → push</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/cover_push.jpg" src="static/media/hw/cover_push.mp4"></video></div>
+    </div>
+    <p class="cap">No mode is requested: each run uses a plan sampled from the prior. Different draws lead to different manners, and both succeed. The two starts differ by about one roll width.</p>
+
+    <h3>Outcome adaptation: when one manner stops working</h3>
+    <p class="muted prose">We then change the world so that one manner fails, without telling the robot. On a <b>raised target</b> a pushed roll cannot climb the platform; on a <b>lying roll</b> the gripper cannot pinch it from above. After each run the planner sees only success or failure, updates a per-mode reward table, and reweights its frozen plan draws. No network weights change.</p>
+    <div class="grid4" style="margin-top:22px">
+      <div class="media"><span class="chip bad">raised · push ✗</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/raised_push_fail.jpg" src="static/media/hw/raised_push_fail.mp4"></video></div>
+      <div class="media"><span class="chip gpl">raised · pick ✓</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/raised_pick_ok.jpg" src="static/media/hw/raised_pick_ok.mp4"></video></div>
+      <div class="media"><span class="chip bad">lying · pick ✗</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/lying_pick_fail.jpg" src="static/media/hw/lying_pick_fail.mp4"></video></div>
+      <div class="media"><span class="chip gpl">lying · push ✓</span><span class="chip r">2×</span><video data-auto muted loop playsinline preload="none" poster="static/media/hw/lying_push_ok.jpg" src="static/media/hw/lying_push_ok.mp4"></video></div>
+    </div>
+    <p class="cap"><b>The two shifts.</b> Raised target: a fixed push plan drives the roll into the platform's side (the run was stopped at 10 s), while a fixed pick plan sets it on top. Lying roll, first two runs of one adaptation sequence: the first plan is a pick and the gripper cannot lift the roll; after that single failure the planner switches to push, which succeeds.</p>
+
+    <div class="viewer" style="margin-top:34px">
+      <div class="media"><video id="v-demo" data-auto muted loop playsinline controls preload="none" poster="static/media/hw/adapt_demo.jpg" src="static/media/hw/adapt_demo.mp4" aria-label="Outcome adaptation on the SO-101 arm, with the planner's state shown beside the camera view"></video></div>
+      <div class="panel">
+        <div class="eyebrow" style="margin:0">Now playing · 1×</div>
+        <div class="now" id="demo-now">Training data</div>
+        <p id="demo-desc">In the demonstrations both manners work.</p>
+        <div class="chapters" data-chapters="#v-demo" data-now="#demo-now" data-desc="#demo-desc">
+            <button data-t="3.0" data-desc="In the demonstrations both manners work: from the same start, one demo picks the roll up and another pushes it (64 pick and 60 push demonstrations in the training split)."><span>0:03</span>Training data</button>
+            <button data-t="13.333" data-desc="The square now sits on a platform. A pushed roll cannot climb it; a picked roll can be set on top."><span>0:13</span>Shift 1: raised target</button>
+            <button data-t="15.333" data-desc="The planner has no feedback yet and samples a push plan. The roll stops at the platform."><span>0:15</span>Run 1: a push plan</button>
+            <button data-t="35.0" data-desc="The failure enters the reward table, and reweighting the same frozen plan draws moves almost all weight off push."><span>0:35</span>Reweighting</button>
+            <button data-t="37.0" data-desc="The planner now draws a pick plan, and the roll is set on the platform."><span>0:37</span>Next run: a pick plan</button>
+            <button data-t="44.733" data-desc="Later runs at 4× speed: the planner keeps choosing pick. The run marked * had the operator nudge the roll and is not counted."><span>0:44</span>The rest of the sequence</button>
+            <button data-t="50.733" data-desc="The roll lies on its side and cannot be pinched from above; a push still rolls it in."><span>0:50</span>Shift 2: lying roll</button>
+            <button data-t="52.733" data-desc="The gripper cannot lift the lying roll."><span>0:52</span>Run 1: a pick plan</button>
+            <button data-t="72.167" data-desc="After the failed pick, nearly all weight moves to push plans."><span>1:12</span>Reweighting</button>
+            <button data-t="74.167" data-desc="The roll is pushed into the square."><span>1:14</span>Run 2: a push plan</button>
+            <button data-t="80.6" data-desc="Runs 3–8 at 4× speed: the planner keeps pushing."><span>1:20</span>The rest of the sequence</button>
+            <button data-t="84.533" data-desc="Raised target: 4 of 4 sequences ended on pick after at most one failed push. Lying roll: 3 of 4 ended on push after at most one failed pick; the fourth, set up with the roll rotated 90°, stayed on pick."><span>1:24</span>Every sequence</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="split" style="margin-top:44px">
+      <div>
+        <h4>Every adaptation run</h4>
+        <div class="strip">
+          <div class="seq head"><span>run</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
+          <div class="seq"><span>raised 1</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick fail" title="pick, failure">✗</span><span class="cell push fail" title="push, failure">✗</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick fail" title="pick, failure">✗</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span></div>
+<div class="seq"><span>raised 2</span><span class="cell push fail" title="push, failure">✗</span><span class="cell none" title="operator touched the roll: not counted">*</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span></div>
+<div class="seq"><span>raised 3</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span></div>
+<div class="seq"><span>raised 4</span><span class="cell push fail" title="push, failure">✗</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick fail" title="pick, failure">✗</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick" title="pick, success">✓</span><span class="cell pick fail" title="pick, failure">✗</span></div>
+          <div class="seq"><span>lying 1</span><span class="cell pick fail" title="pick, failure">✗</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push fail" title="push, failure">✗</span><span class="cell push" title="push, success">✓</span></div>
+<div class="seq"><span>lying 2</span><span class="cell pick fail" title="pick, failure">✗</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span></div>
+<div class="seq"><span>lying 3</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span><span class="cell push" title="push, success">✓</span></div>
+        </div>
+        <div class="legend"><span><i style="background:var(--action)"></i>pick plan</span><span><i style="background:var(--det)"></i>push plan</span><span>faded = failed run</span><span>* operator touched the roll, not counted</span></div>
+        <p class="note" style="margin-top:8px">Each row is one sequence of eight runs that starts from an empty reward table. A fourth lying-roll sequence, set up with the roll rotated 90°, stayed on pick and is not shown.</p>
+      </div>
+      <div>
+        <h4>Raised target: how often the roll ends on the square</h4>
+        <div class="bars reveal">
+          <div class="bar"><span>always push (fixed plan)</span><div class="track"><div class="fill" style="width:10.0%;background:var(--det)"></div></div><b>1 / 10</b></div>
+          <div class="bar"><span>plan prior, no adaptation</span><div class="track"><div class="fill" style="width:50.0%;background:var(--control)"></div></div><b>5 / 10</b></div>
+          <div class="bar"><span>outcome adaptation, runs 2–8</span><div class="track"><div class="fill" style="width:81.5%;background:var(--gpl)"></div></div><b>22 / 27</b></div>
+          <div class="bar"><span>always pick (fixed plan)</span><div class="track"><div class="fill" style="width:91.7%;background:var(--action)"></div></div><b>11 / 12</b></div>
+        </div>
+        <p class="note">Fixed-plan and prior runs come from a baseline session on the same day. Adaptation counts runs 2–8 of the four raised sequences, without the run the operator touched. Always-pick is the best fixed choice here, but it has to be known in advance; adaptation reaches it from outcomes, after at most one failed push per sequence.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ redundancy -->
+<section id="redundancy">
+  <div class="wrap">
+    <div class="eyebrow"><b>05</b>When does the plan matter?</div>
+    <h2>The redundancy principle</h2>
+    <div class="split">
+      <div>
+        <p class="lead" style="margin-top:0">An explicit plan can change behavior only if it carries decision information that the executor cannot already read from the observation. If the observation settles the decision, the plan is redundant: its benefit vanishes while its interface cost remains.</p>
+      </div>
+      <div class="card">
+        <div class="k">redundancy score</div>
+        <div class="eq">\[\widetilde R \;=\; 1-\frac{H(y\mid c)}{\ln m}\]</div>
+        <p>\(H(y\mid c)\) is the held-out cross-entropy of a probe that predicts the decision \(y\) from the executor's conditioning \(c\); \(m\) is the number of modes. \(\widetilde R\approx 0\): \(c\) says little about the decision. \(\widetilde R\approx 1\): \(c\) nearly determines it.</p>
+      </div>
+    </div>
+    <p class="prose muted" style="margin-top:18px">Three monotone manipulations test whether the plan's effect tracks redundancy.</p>
+    <div class="seg tabs" data-tabs="red" role="tablist">
+      <button data-pane="ambiguity" aria-selected="true">Ambiguity</button>
+      <button data-pane="occlusion" aria-selected="false">Occlusion</button>
+      <button data-pane="libero" aria-selected="false">LIBERO causal test</button>
+    </div>
+    <div data-pane-of="red" data-pane="ambiguity">
+      <div class="split">
+        <div class="chart" data-chart>
+          <h4>The generative advantage grows with ambiguity</h4>
+          <script type="application/json">{"aria":"Success-rate gap of GPL over the deterministic baseline versus task ambiguity",
+            "x":[0,0.25,0.5,0.75,1],"xname":"U","xlab":"ambiguity U = 1 − |2β − 1|","ylab":"SR gap (GPL − det.)","ylim":[-0.45,1.0],
+            "yticks":[-0.25,0,0.25,0.5,0.75],"ref":0,"signed":true,"start":4,
+            "series":[{"name":"GPL − deterministic","color":"--gpl","y":[-0.234,0.153,0.569,0.794,0.791],"lo":[-0.382,-0.074,0.398,0.695,0.707],"hi":[-0.087,0.380,0.740,0.892,0.875]}]}</script>
+          <input type="range" min="0" value="4" aria-label="ambiguity level">
+          <output></output>
+          <p class="note">β is the fraction of demonstration mass on the preferred cube; scene and executor are fixed. Five seeds, bootstrap 95% intervals.</p>
+        </div>
+        <div>
+          <p class="muted">Sweeping only the training distribution, the success-rate gap over the deterministic baseline moves from a net <b>penalty</b> on the unambiguous task to large gains under full bimodality. A strictly unimodal control locates the penalty: when the observation already resolves the decision, the intermediate plan adds no information and acts as a bottleneck.</p>
+        </div>
+      </div>
+    </div>
+    <div data-pane-of="red" data-pane="occlusion" hidden>
+      <div class="split">
+        <div>
+          <div class="media"><video data-auto muted loop playsinline preload="none" poster="static/media/sim/b0_occl_mask_s117.jpg" src="static/media/sim/b0_occl_mask_s117.mp4"></video></div>
+          <p class="cap">One rollout with the spoon masked from the camera (it is still on the table). Stock π<sub>0</sub> (left) leaves it; with the plan carried from before the occlusion (right), the spoon ends on the towel.</p>
+        </div>
+        <div>
+          <p class="muted">We hide the target's visual mesh from control step \(t\) onward during a π<sub>0</sub> manipulation task. As occlusion removes decision information from the observation, committing to an earlier plan becomes valuable: carrying it through the occlusion beats stock π<sub>0</sub> by up to <b>36</b> and the matched plan-less control by up to <b>28</b> percentage points, and beats re-inferring the plan from the degraded image at every step. When occlusion comes late or never, the observation suffices, the plan is redundant again, and the arms converge.</p>
+        </div>
+      </div>
+      <figure class="fig reveal">
+        <img src="static/img/fig_when_plan_matters_extended.webp" alt="Generative advantage versus ambiguity, and grasp success versus occlusion onset" loading="lazy">
+        <figcaption>Left: the generative advantage grows with controlled ambiguity. Right: carrying an earlier decision grows more valuable as occlusion removes the information that produced it; the privileged-state curve is a ground-truth-pose ceiling.</figcaption>
+      </figure>
+    </div>
+    <div data-pane-of="red" data-pane="libero" hidden>
+      <div class="split">
+        <div class="chart" data-chart>
+          <h4>Less redundancy, more steering</h4>
+          <script type="application/json">{"aria":"LIBERO steer range versus fraction of counterfactual demonstrations",
+            "x":[0,0.25,0.5,0.75,1],"xname":"q","xlab":"fraction of counterfactual demonstrations q","ylab":"steer range (grasped)","ylim":[0,0.85],
+            "yticks":[0,0.2,0.4,0.6,0.8],"signed":true,"start":0,
+            "series":[{"name":"steer range","color":"--gpl","y":[0.236,0.444,0.556,0.596,0.640],"lo":[0.155,0.335,0.428,0.486,0.523],"hi":[0.326,0.569,0.695,0.710,0.760],
+              "extra":["redundancy 0.234","redundancy 0.110","redundancy 0.052","redundancy 0.005","redundancy 0.000"]}]}</script>
+          <input type="range" min="0" value="0" aria-label="counterfactual fraction">
+          <output></output>
+          <p class="note">Five nested demonstration mixtures, six tasks, 360 episodes per arm; redundancy from the tuned, calibrated probe (E2); scene-clustered 95% bootstraps. Redundancy and steering are perfectly rank-anticorrelated (Spearman ρ = −1.00).</p>
+        </div>
+        <div>
+          <p class="muted">LIBERO gives the sharpest causal test. With generic instructions that do not name the target, pretrained π<sub>0.5</sub> stays competent (140/300 successes; π<sub>0</sub> collapses to 3/300). Trained on π<sub>0.5</sub>'s own habit rollouts, the plan is largely redundant with the scene (\(\widetilde R = 0.47\)) and steering is weak. Replacing only those demonstrations with counterfactual pairs (either bowl, in the identical scene) drives \(\widetilde R\) to 0.00, holding executor, benchmark, and recipe fixed: the pooled steer range rises from <b>+0.19</b> to <b>+0.65</b>, in all six matched adapter seeds.</p>
+</div>
+        </div>
+      </div>
+      <div class="grid3" style="margin-top:28px">
+        <div class="media"><span class="chip bad">habit demos · plan: bowl 2</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/libero_battery_v2_s5_cmd_bowl2_t3_e5.jpg" src="static/media/sim/libero_battery_v2_s5_cmd_bowl2_t3_e5.mp4"></video></div>
+        <div class="media"><span class="chip gpl">counterfactual · plan: bowl 2</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/libero_battery_cf_s5_cmd_bowl2_t3_e5.jpg" src="static/media/sim/libero_battery_cf_s5_cmd_bowl2_t3_e5.mp4"></video></div>
+        <div class="media"><span class="chip gpl">counterfactual · plan: bowl 1</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/libero_battery_cf_s5_cmd_bowl1_t3_e5.jpg" src="static/media/sim/libero_battery_cf_s5_cmd_bowl1_t3_e5.mp4"></video></div>
+      </div>
+      <p class="cap"><b>Same scene, same executor, π<sub>0.5</sub>.</b> Trained on habit rollouts, the plan “bowl 2” is ignored and the arm takes bowl 1. Trained on counterfactual pairs, the arm takes bowl 2, and commanding bowl 1 takes bowl 1.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ generality -->
+<section id="generality" class="alt">
+  <div class="wrap">
+    <div class="eyebrow"><b>06</b>Generality</div>
+    <h2>Beyond hand-designed plans and one simulator</h2>
+    <div class="seg tabs" data-tabs="gen" role="tablist">
+      <button data-pane="learned" aria-selected="true">Learned coordinates</button>
+      <button data-pane="families" aria-selected="false">Four task families</button>
+      <button data-pane="robocasa" aria-selected="false">RoboCasa</button>
+      <button data-pane="maze" aria-selected="false">Maze</button>
+    </div>
+    <div data-pane-of="gen" data-pane="learned">
+      <p class="prose muted">Replace the hand-designed plan coordinates with a 2-D latent learned only from behavior: an autoencoder compresses demonstrated future end-effector trajectories and is frozen before any object, mode, or language label is seen. All three operations survive. Through π<sub>0</sub>, guiding the learned latent raises the commanded-mode rate from 0.50 (stock π<sub>0</sub>) to <b>0.78</b>, toward a 0.92 oracle-code ceiling, statistically indistinguishable from the hand-designed 3-D anchor (paired difference +0.03).</p>
+      <figure class="fig reveal">
+        <img src="static/img/fig_learned_coordinates.webp" alt="Coverage, invalid draws, and closed-loop commanded-mode rate for learned versus hand-designed plan coordinates" loading="lazy">
+        <figcaption>Left: offline properties of draws straight from the plan generator, never executed. Right: closed loop through π<sub>0</sub>. 95% percentile-bootstrap intervals over training seeds and held-out layouts.</figcaption>
+      </figure>
+    </div>
+    <div data-pane-of="gen" data-pane="families" hidden>
+      <p class="prose muted">One 54-D schema of object-relative contact events (position, approach angle, gripper state), one flow reasoner, trained jointly across four SimplerEnv task families, recovers the valid alternatives in all four.</p>
+      <div class="ctl"><span>family</span>
+        <div class="seg" data-switch="#v-fam-a" data-switch2="#v-fam-b" data-caption="#cap-fam">
+          <button aria-pressed="true" data-src="static/media/sim/R5-s1.cmd0.mp4" data-alt="static/media/sim/R5-s1.cmd1.mp4" data-chips="left cube|right cube" data-cap="Same start, two plans: one sends the arm to the left cube, the other to the right cube; each is grasped.">pick-and-place</button>
+          <button aria-pressed="false" data-src="static/media/sim/R5-grasp_yaw.cmd0.mp4" data-alt="static/media/sim/R5-grasp_yaw.cmd1.mp4" data-chips="face 0|face 1" data-cap="Same start, two plans: the two grasps differ by a 90° wrist rotation, and both are valid on the square cube.">grasp yaw</button>
+          <button aria-pressed="false" data-src="static/media/sim/R5-canpush.cmd0.mp4" data-alt="static/media/sim/R5-canpush.cmd1.mp4" data-chips="pick|push" data-cap="Same start, two plans: one picks the can and sets it on the pad, the other pushes it onto the pad.">pick or push</button>
+          <button aria-pressed="false" data-src="static/media/sim/R5-sweep.cmd0.mp4" data-alt="static/media/sim/R5-sweep.cmd1.mp4" data-chips="zone 0|zone 1" data-cap="Same start, two plans: the block is swept into a different target zone in each.">sweep</button>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="media"><span class="chip gpl">plan: left cube</span><video id="v-fam-a" data-auto muted loop playsinline preload="none" poster="static/media/sim/R5-s1.cmd0.jpg" src="static/media/sim/R5-s1.cmd0.mp4"></video></div>
+        <div class="media"><span class="chip gpl">plan: right cube</span><video id="v-fam-b" data-auto muted loop playsinline preload="none" poster="static/media/sim/R5-s1.cmd1.jpg" src="static/media/sim/R5-s1.cmd1.mp4"></video></div>
+      </div>
+      <p class="cap" id="cap-fam">Same start, two plans: one sends the arm to the left cube, the other to the right cube; each is grasped.</p>
+      <figure class="fig reveal">
+        <img src="static/img/fig_contact_sketch_battery.webp" alt="Coverage, steering, and outcome adaptation across four task families" loading="lazy">
+        <figcaption>Coverage and steering are scored in plan space (each drawn sketch assigned to its nearest mode centroid; no executor run). Outcome adaptation reranks the frozen prior from measured rollout outcomes under a family-specific physical shift.</figcaption>
+      </figure>
+    </div>
+    <div data-pane-of="gen" data-pane="robocasa" hidden>
+      <div class="split">
+        <div>
+          <div class="media"><video data-auto muted loop playsinline preload="none" poster="static/media/sim/steer_ep2.jpg" src="static/media/sim/steer_ep2.mp4"></video></div>
+          <p class="cap">RoboCasa, same reset, two commanded plans (left: blue bar, right: red bar): the executor's motion follows the command.</p>
+        </div>
+        <p class="muted">RoboCasa changes the simulator, the scene distribution, and the robot: a mobile manipulator. In an offline probe with fixed plan anchors, π<sub>0</sub> realizes both commanded alternatives, and reranking raises plan-level task success from <b>0.65</b> to <b>1.00</b>. Terminal mobile-base navigation remains outside the adapted executor's scope.</p>
+      </div>
+      <figure class="fig reveal">
+        <img src="static/img/fig_cross_sim_battery.webp" alt="Coverage, steering, and reranking in SimplerEnv and RoboCasa" loading="lazy">
+        <figcaption>SimplerEnv is closed loop (coverage and adaptation on a two-spoon scene, steering on a three-cube scene). RoboCasa is evaluated offline on commanded relative pose, with fixed plan anchors in place of a trained reasoner.</figcaption>
+      </figure>
+    </div>
+    <div data-pane-of="gen" data-pane="maze" hidden>
+      <p class="prose muted">Beyond manipulation, a multi-path maze with a higher-dimensional route-map plan: K = 16 draws recover both valid routes while the deterministic twin collapses, commanded-route fidelity rises with guidance strength, and feedback about a hidden forbidden route raises success to 1.00 while shuffled feedback lags.</p>
+      <figure class="fig reveal">
+        <img src="static/img/fig_maze_capabilities.webp" alt="Maze: route coverage, guidance fidelity, and adaptation under a hidden rule" loading="lazy">
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ limitations -->
+<section id="limitations">
+  <div class="wrap"><div class="prose">
+    <div class="eyebrow"><b>07</b>Scope</div>
+    <h2>Limitations</h2>
+    <p class="muted">Benchmarks rarely contain the underdetermined decisions this work studies, so we construct most multimodal settings ourselves: the two-cube and three-object tasks, the contact-sketch scenes, and the LIBERO counterfactual demonstrations. Pretrained VLAs do not always adapt well to that shift. On LIBERO, π<sub>0</sub> achieves 3/300 under the generic instructions the test requires, which is why we use π<sub>0.5</sub>; even with π<sub>0.5</sub>, none of the four preregistered magnitude predictions are met, and the plan-conditioning interface keeps a grasp-rate penalty of 0.274. The redundancy principle is validated by three causal manipulations; whether it extends to other task families or to reasoning VLAs more broadly is open. The robot experiments cover one task with two manners on one low-cost arm.</p>
+  </div></div>
+</section>
+
+<!-- ============================================================ bibtex -->
+<section id="bibtex" class="alt">
+  <div class="wrap">
+    <div class="eyebrow">Citation</div>
+    <h2>BibTeX</h2>
+    <div class="bibbox">
+      <!-- TODO: replace with the arXiv BibTeX entry -->
+<pre id="bibtex">@article{gpl2026,
+  title   = {Reasoning as a Distribution: Generative Plan Latents
+             for Vision--Language--Action Models},
+  author  = {TODO},
+  journal = {arXiv preprint arXiv:TODO},
+  year    = {2026}
+}</pre>
+      <button class="btn" id="copy-bib">Copy</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">Robot clips play at the speed marked on each video. <a href="https://github.com/matCercola18/reasoning-as-a-distribution">Page source</a>.</div>
+</footer>
+
+<dialog class="lightbox" id="lightbox"><img alt=""></dialog>
+
+<script src="static/js/flow.js"></script>
+<script src="static/js/main.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false}]})"></script>
+</body>
+</html>
