@@ -143,6 +143,8 @@
   // ---------------------------------------------------------------- plan flows
   // x = plan coordinate z (left cube at -1, right cube at +1), y = flow time t (noise at the bottom).
   const F = window.GPLFlow;
+  // noise draws for the toy panels, truncated at |z| < 2.3 so no path starts off-canvas
+  const noise = (r, n) => { const a = []; while (a.length < n) { const z = r.normal(); if (Math.abs(z) < 2.3) a.push(z); } return a; };
   const fit = cv => {
     const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1;
     cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
@@ -213,7 +215,7 @@
   const trip = $$('canvas[data-flow]');
   let seed = 11;
   const drawTrip = () => {
-    const r = F.rng(seed++), z0 = Array.from({ length: 40 }, r.normal);
+    const z0 = noise(F.rng(seed++), 40);
     trip.forEach(cv => {
       const kind = cv.dataset.flow;
       const st = kind === 'gpl' ? { paths: z0.map(z => F.flowPath(z, [0.5, 0.5])) }
@@ -230,9 +232,9 @@
   // Playground: steer with a dose w, or adapt from deployment outcomes.
   const pg = $('#pg-canvas');
   if (pg) {
-    const r = F.rng(5), z0 = Array.from({ length: 48 }, r.normal);
+    const z0 = noise(F.rng(5), 48);
     const P = { request: 0, w: 0, mode: 'steer' };
-    const A = { pool: [], table: [{ n: 0, s: 0 }, { n: 0, s: 0 }], log: [], beta: 8, p: [0.2, 0.9] };
+    const A = { pool: [], table: [{ n: 0, s: 0 }, { n: 0, s: 0 }], log: [], beta: 8, p: [0.2, 0.9], resets: 0 };
     const steerState = () => {
       const pi = F.guidedPi([0.5, 0.5], P.request, P.w);
       return { paths: z0.map(z => F.flowPath(z, pi)), request: P.request, progress: 1 };
@@ -245,10 +247,10 @@
     };
     // Adaptation: K frozen draws, a per-mode reward table, Boltzmann reweighting.
     const resetAdapt = () => {
-      const rr = F.rng(23);
-      A.paths = Array.from({ length: 16 }, () => F.flowPath(rr.normal(), [0.5, 0.5]));
+      const rr = F.rng(2);                     // a pool with 8 draws on each cube
+      A.paths = noise(rr, 16).map(z => F.flowPath(z, [0.5, 0.5]));
       A.pool = A.paths.map(p => p.at(-1));
-      A.table = [{ n: 0, s: 0 }, { n: 0, s: 0 }]; A.log = []; A.rand = F.rng(99);
+      A.table = [{ n: 0, s: 0 }, { n: 0, s: 0 }]; A.log = []; A.rand = F.rng(A.resets++ ? Date.now() % 1e9 : 8);
       showAdapt();
     };
     const showAdapt = () => {
@@ -322,7 +324,7 @@
       g.strokeStyle = `rgba(${120 - 59 * t | 0},${140 + 80 * t | 0},${175 - 24 * t | 0},${0.08 + 0.55 * t * t})`;
       g.beginPath(); g.moveTo(x0, y0); g.lineTo(X(p.t), Y(p.z)); g.stroke();
     };
-    const frame = () => {
+    const tick = () => {
       g.globalCompositeOperation = 'destination-out';
       g.fillStyle = 'rgba(0,0,0,0.085)'; g.fillRect(0, 0, w, h);
       g.globalCompositeOperation = 'lighter'; g.lineWidth = 1.2;
@@ -331,8 +333,9 @@
         advance(p, p.v);
         if (p.t >= 1) born(p); else stroke(p, x0, y0);
       }
-      if (live) requestAnimationFrame(frame);
     };
+    const frame = () => { tick(); if (live) requestAnimationFrame(frame); };
+    const warm = () => { for (let i = 0; i < 90; i++) tick(); };   // start with trails already drawn
     const drawStill = () => {                // reduced motion: static streamlines
       g.globalCompositeOperation = 'lighter'; g.lineWidth = 1;
       for (let i = 0; i < 160; i++) {
@@ -342,11 +345,14 @@
     };
     geom();
     if (still) drawStill();
-    else new IntersectionObserver(es => {
-      const on = es[0].isIntersecting;
-      if (on && !live) { live = true; requestAnimationFrame(frame); }
-      live = on;
-    }).observe(hero);
-    addEventListener('resize', () => { geom(); if (still) drawStill(); });
+    else {
+      warm();
+      new IntersectionObserver(es => {
+        const on = es[0].isIntersecting;
+        if (on && !live) { live = true; requestAnimationFrame(frame); }
+        live = on;
+      }).observe(hero);
+    }
+    addEventListener('resize', () => { geom(); still ? drawStill() : warm(); });
   }
 })();
