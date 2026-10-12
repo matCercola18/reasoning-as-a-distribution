@@ -32,7 +32,10 @@ Chart values are copied from the paper's result files; each chart's JSON sits ne
 ## Media provenance
 
 Simulation clips are web encodes (H.264, CRF 28) of the explainer-video clip pool
-(`latent-reasoning-vla/video/media/clips/<same name>.mp4`), trimmed to the action.
+(`latent-reasoning-vla/video/media/clips/<same name>.mp4`), trimmed to the action, except
+`R1-sample.a`/`.b`: draws 1 and 3 of layout 10, rep 2 in
+`video/media/sim_raw/R1c_twocube_sample/clips/` (both grasp and lift; no right-cube draw of the
+explainer's layout 20 does).
 `adapt_demo.mp4` is a re-encode of `results/so101_demo/outcome_adaptation_demo.mp4`.
 The other SO-101 clips are workspace-camera cuts at 2× real time from the robot sessions
 (public HF dataset `so101_gpl_eval`):
