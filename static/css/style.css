@@ -84,6 +84,9 @@ em { color: var(--gpl-2); font-style: italic; }
 .authors { font-size: 16.5px; color: var(--ink); margin-bottom: 2px; }
 .authors a { color: var(--ink); }
 .affil { font-size: 14px; color: var(--ink-3); }
+.authors, .affil { text-wrap: balance; }
+.authors span, .affil span { white-space: nowrap; margin-right: 10px; }
+.authors sup, .affil sup { font-size: 0.68em; margin-left: 1px; }
 .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 12px; border: 1px solid var(--line);
   background: var(--bg-3); color: var(--ink); font: 600 14.5px var(--sans); cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
