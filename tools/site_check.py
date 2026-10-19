@@ -155,7 +155,7 @@ with sync_playwright() as p:
         ok(page.inner_text("#copy-bib") == "Copied", f"{tag} copy button -> {page.inner_text('#copy-bib')}")
         if engine == "chromium":
             clip = page.evaluate("navigator.clipboard.readText()")
-            ok(clip.startswith("@article{gpl2026"), f"{tag} clipboard got {clip[:30]!r}")
+            ok(clip.strip() == page.inner_text("#bibtex-src").strip(), f"{tag} clipboard got {clip[:30]!r}")
 
         ok(not errs, f"{tag} console: {errs}")
         ok(not bad, f"{tag} failed requests: {bad}")
