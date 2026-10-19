@@ -40,7 +40,8 @@ Simulation clips are web encodes (H.264, CRF 28) of the explainer-video clip poo
 `R1-sample.a`/`.b`: draws 1 and 3 of layout 10, rep 2 in
 `video/media/sim_raw/R1c_twocube_sample/clips/` (both grasp and lift; no right-cube draw of the
 explainer's layout 20 does).
-`adapt_demo.mp4` is a re-encode of `results/so101_demo/outcome_adaptation_demo.mp4`.
+`adapt_demo.mp4` is a web encode (H.264, CRF 26, 1920×1080) of `results/so101_demo/outcome_adaptation_demo.mp4`,
+rendered by `hardware/so101_adapt_video.py`; its poster is the frame at 15.6 s.
 The other SO-101 clips are workspace-camera cuts at 2× real time from the robot sessions
 (public HF dataset `so101_gpl_eval`):
 
