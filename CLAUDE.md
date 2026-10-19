@@ -16,6 +16,8 @@ media provenance table; this file has the context and rules that are not visible
   `<details>` block under it, never in the main text. No tabs for primary results.
 - Color rule (one meaning per color, page-wide): mint = GPL, gray = every baseline, red = failure,
   blue / amber = pick / push (matches the colors burned into `adapt_demo.mp4`).
+- Background (2026-10-19, owner found near-black too dark): slate `--bg` #1b2129 for content,
+  near-black `--bg-deep` #0d1117 only in the hero, fading into the slate.
 - Paper figures are not used except the architecture diagram; results are native charts/bars
   (dark theme). The old sim steering clips `R1-guided-L/R` were dropped (`R1-guided-R` slipped).
 
