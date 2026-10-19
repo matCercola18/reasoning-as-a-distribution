@@ -3,7 +3,7 @@ widths), exercises every widget, and reports console errors, missing files, dead
 overflow and broken interactions. Exit code 1 on any failure.
 
     pip install playwright && playwright install chromium      # once
-    python tools/site_check.py [port]
+    python tools/site_check.py [port]                  # ENGINE=webkit|firefox for other engines
 
 Video playback is not tested (Playwright's Chromium has no H.264); check codecs with ffprobe."""
 import sys, glob, os, subprocess, time, atexit
@@ -26,12 +26,15 @@ def canvas_ink(page, sel):
         let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n / (d.length / 4); }""")
 
 with sync_playwright() as p:
-    b = p.chromium.launch(executable_path=CHROME)
-    for name, vp in [("desktop", dict(width=1440, height=900)), ("mobile", dict(width=390, height=844))]:
+    engine = os.environ.get("ENGINE", "chromium")
+    b = p.chromium.launch(executable_path=CHROME) if engine == "chromium" else getattr(p, engine).launch()
+    sizes = [(1280, 800), (1440, 900), (1920, 1080), (2560, 1440), (1024, 768), (390, 844)]
+    for name, vp in [(f"{engine} {w}x{h}", dict(width=w, height=h)) for w, h in sizes]:
         ctx = b.new_context(viewport=vp, device_scale_factor=1)
         page = ctx.new_page()
         errs, bad = [], []
-        page.on("console", lambda m: m.type in ("error", "warning") and errs.append(f"{m.type}: {m.text}"))
+        page.on("console", lambda m: (m.type == "error" or (m.type == "warning" and "deprecated" not in m.text))
+                and errs.append(f"{m.type}: {m.text}"))           # Firefox flags KaTeX's MathML as deprecated
         page.on("pageerror", lambda e: errs.append(f"pageerror: {e}"))
         page.on("response", lambda r: r.status >= 400 and bad.append(f"{r.status} {r.url}"))
         page.goto(URL, wait_until="networkidle")
@@ -146,11 +149,13 @@ with sync_playwright() as p:
         ok(mk == "none", f"{tag} details marker still default ({mk})")
         page.click("figure.fig img"); ok(page.eval_on_selector("#lightbox", "d => d.open"), f"{tag} lightbox didn't open")
         page.click("#lightbox"); ok(not page.eval_on_selector("#lightbox", "d => d.open"), f"{tag} lightbox didn't close")
-        ctx.grant_permissions(["clipboard-read", "clipboard-write"], origin=f"http://127.0.0.1:{PORT}")
+        if engine == "chromium":                       # only Chromium lets a test read the clipboard
+            ctx.grant_permissions(["clipboard-read", "clipboard-write"], origin=f"http://127.0.0.1:{PORT}")
         page.click("#copy-bib"); page.wait_for_timeout(100)
         ok(page.inner_text("#copy-bib") == "Copied", f"{tag} copy button -> {page.inner_text('#copy-bib')}")
-        clip = page.evaluate("navigator.clipboard.readText()")
-        ok(clip.startswith("@article{gpl2026"), f"{tag} clipboard got {clip[:30]!r}")
+        if engine == "chromium":
+            clip = page.evaluate("navigator.clipboard.readText()")
+            ok(clip.startswith("@article{gpl2026"), f"{tag} clipboard got {clip[:30]!r}")
 
         ok(not errs, f"{tag} console: {errs}")
         ok(not bad, f"{tag} failed requests: {bad}")
