@@ -22,6 +22,7 @@ node static/js/flow.js          # self-check of the playground's flow math
 | `static/js/main.js` | video playback, clip switchers, chapters, charts, the two toys (steer, adapt) |
 | `static/js/flow.js` | toy rectified-flow model behind the toys |
 | `static/js/plan_samples.js` | flow draws for the "plan draws on the scene image" figure |
+| `tools/site_check.py` | headless-browser check of every widget, file and anchor (`pip install playwright`) |
 | `tools/render_plan_samples.py` | rebuilds that figure's frames at 3× camera resolution (SimplerEnv, GPU) |
 | `static/img/` | the architecture figure (WebP, from the paper PDF) and the plan-draw scene images |
 | `static/media/` | web encodes of the simulation and SO-101 robot videos |

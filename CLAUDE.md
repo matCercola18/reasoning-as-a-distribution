@@ -60,6 +60,11 @@ All paths below are relative to `/home/cercola/Continuous-Reasoning/latent-reaso
 
 ## Checking changes
 
+- `python tools/site_check.py` (needs `pip install playwright`) loads the page in headless Chromium
+  at desktop and phone width and exercises every widget; it must print ALL CHECKS PASSED.
+- After changing `style.css` or any `static/js/*.js`, bump the `?v=` stamp on its URL in
+  `index.html`. Without it, browsers keep the old file next to the new HTML (2026-10-19: the
+  owner saw unstyled tiles, black chart lines and a blank toy from exactly this).
 - `node static/js/flow.js` self-checks the playground math.
 - `node --check static/js/main.js` after JS edits; keep `<div>` balance per section (a stray
   `</div>` once moved clips into the wrong tab).
