@@ -78,7 +78,7 @@
       </a>
       <a class="tile" href="#adapt">
         <span class="k">Adapt</span>
-        <h3>A strategy breaks? It switches.</h3>
+        <h3>Learns the best plan from outcomes.</h3>
         <div class="num">0 FLOPs</div>
         <p>of training to match retraining the planner on the same feedback, which costs 10<sup>13</sup>.</p>
       </a>
@@ -221,8 +221,8 @@
 <section id="adapt">
   <div class="wrap">
     <div class="eyebrow"><b>03</b>Adapt</div>
-    <h2>When a strategy breaks, it switches.<br>No retraining.</h2>
-    <p class="lead">Deployment throws things at a robot that training never showed it. GPL already holds the alternatives, so it only has to find out which one works <em>now</em>: it scores its own outcomes and re-weights the plans it draws. The network never changes.</p>
+    <h2>It learns the best plan at deployment.<br>No retraining.</h2>
+    <p class="lead">The strategy isn't fixed at training time. When a can is wider, the target sits higher or the roll lies on its side, GPL already holds the alternative plans. It only has to learn which one works <em>now</em>: it scores the outcome of every attempt, failures included, and draws the plans that succeed more often. The network weights never change.</p>
 
     <div class="grid3" style="margin-top:34px">
       <div class="media"><span class="chip gpl">training-size can · pick ✓</span><video data-auto muted loop playsinline preload="none" poster="static/media/sim/R3-pick-small.jpg" src="static/media/sim/R3-pick-small.mp4"></video></div>
@@ -244,7 +244,7 @@
     </div>
     <p class="note" style="margin-top:10px">Every card is an experiment we ran. One mechanism handles all of them.</p>
 
-    <h3>On a real arm: one failure, then the plan that works.</h3>
+    <h3>On a real arm: it learns which plan works from its own outcomes.</h3>
     <div class="viewer">
       <div class="media"><video id="v-demo" data-auto muted loop playsinline controls preload="none" poster="static/media/hw/adapt_demo.jpg?v=20261019c" src="static/media/hw/adapt_demo.mp4?v=20261019c" aria-label="Outcome adaptation on the SO-101 arm, with the planner's state shown beside the camera view"></video></div>
       <div class="panel">
