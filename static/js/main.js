@@ -70,7 +70,7 @@
   box?.addEventListener('click', () => box.close());
 
   $('#copy-bib')?.addEventListener('click', e => {
-    navigator.clipboard.writeText($('#bibtex').textContent.trim());
+    navigator.clipboard.writeText($('#bibtex-src').textContent.trim());
     e.target.textContent = 'Copied';
     setTimeout(() => { e.target.textContent = 'Copy'; }, 1500);
   });
@@ -172,10 +172,10 @@
     const valid = z => Math.abs(Math.abs(z) - 1) < 0.45;
     if (single !== undefined) {           // a deterministic readout: one committed plan
       const t = progress;
-      g.strokeStyle = valid(single) ? css('--det') : red; g.lineWidth = 3.5;
+      g.strokeStyle = valid(single) ? css('--base') : red; g.lineWidth = 3.5;
       g.beginPath(); g.moveTo(X(0), Y(0)); g.lineTo(X(single * t), Y(t)); g.stroke();
       if (t >= 1) {
-        if (valid(single)) { g.fillStyle = css('--det'); g.beginPath(); g.arc(X(single), Y(1), 6, 0, 7); g.fill(); }
+        if (valid(single)) { g.fillStyle = css('--base'); g.beginPath(); g.arc(X(single), Y(1), 6, 0, 7); g.fill(); }
         else {
           g.strokeStyle = red; g.lineWidth = 3.5; const c = X(single), y = Y(1), r = 7;
           g.beginPath(); g.moveTo(c - r, y - r); g.lineTo(c + r, y + r); g.moveTo(c + r, y - r); g.lineTo(c - r, y + r); g.stroke();
@@ -229,18 +229,18 @@
     $('#resample')?.addEventListener('click', drawTrip);
   }
 
-  // Playground: steer with a dose w, or adapt from deployment outcomes.
-  const pg = $('#pg-canvas');
-  if (pg) {
+  // Toys: steer with a dose w (Steer section), adapt from deployment outcomes (Adapt section).
+  const pgS = $('#pg-steer'), pgA = $('#pg-adapt');
+  if (pgS && pgA) {
     const z0 = noise(F.rng(5), 48);
-    const P = { request: 0, w: 0, mode: 'steer' };
+    const P = { request: 0, w: 0 };
     const A = { pool: [], table: [{ n: 0, s: 0 }, { n: 0, s: 0 }], log: [], beta: 8, p: [0.2, 0.9], resets: 0 };
     const steerState = () => {
       const pi = F.guidedPi([0.5, 0.5], P.request, P.w);
       return { paths: z0.map(z => F.flowPath(z, pi)), request: P.request, progress: 1 };
     };
     const showSteer = () => {
-      const st = steerState(); drawPanel(pg, st);
+      const st = steerState(); drawPanel(pgS, st);
       const k = st.paths.filter(p => (p.at(-1) < 0) === (P.request === 0)).length;
       $('#pg-share').textContent = `${k} / ${st.paths.length}`;
       $('#pg-w').textContent = P.w.toFixed(1);
@@ -255,7 +255,7 @@
     };
     const showAdapt = () => {
       const wts = F.rerankWeights(A.pool, A.table, A.beta);
-      drawPanel(pg, { paths: A.paths, weights: wts, progress: 1 });
+      drawPanel(pgA, { paths: A.paths, weights: wts, progress: 1 });
       const pLeft = wts.reduce((s, x, i) => s + (A.pool[i] < 0 ? x : 0), 0);
       const exp = pLeft * A.p[0] + (1 - pLeft) * A.p[1];
       $('#pg-exp').textContent = exp.toFixed(2);
@@ -285,14 +285,8 @@
     $('#pg-run1').addEventListener('click', () => deploy(1));
     $('#pg-run10').addEventListener('click', () => deploy(10));
     $('#pg-reset').addEventListener('click', resetAdapt);
-    $$('[data-pgmode]').forEach(b => b.addEventListener('click', () => {
-      P.mode = b.dataset.pgmode;
-      $$('[data-pgmode]').forEach(x => x.setAttribute('aria-selected', x === b));
-      $$('[data-pgpane]').forEach(p => { p.hidden = p.dataset.pgpane !== P.mode; });
-      P.mode === 'steer' ? showSteer() : showAdapt();
-    }));
     resetAdapt(); showSteer();
-    addEventListener('resize', () => (P.mode === 'steer' ? showSteer() : showAdapt()));
+    addEventListener('resize', () => { showSteer(); showAdapt(); });
   }
   addEventListener('resize', () => trip.forEach(cv => cv._state && drawPanel(cv, cv._state)));
 

@@ -9,10 +9,15 @@ media provenance table; this file has the context and rules that are not visible
 - Repo `matCercola18/reasoning-as-a-distribution`, branch `main`, **private** for now. The owner
   makes it public and enables Pages (Settings → Pages → `main` / root) after filling the TODOs.
 - Open TODOs (search `TODO` in `index.html`): authors, affiliations, PDF/arXiv/code links, BibTeX.
-- Known weak clip: Steering tab, `R1-guided-R` (guided toward the right cube) slips after the lift,
-  and its caption says so. None of the 12 guided-right runs in the source pool lifts; replacing it
-  needs new π0 runs in SimplerEnv (the w = 8 plan lands about 17 cm past the cube on layout 20, so
-  try a lower w).
+- Structure since 2026-10-19 (owner asked for less text, punchier claims, outcome adaptation
+  highlighted): hero → three-verb summary tiles → problem toy → one section per capability
+  (Sample, Steer, Adapt) → when it matters → how it works → beyond → scope. Results first, method
+  late. Each result = one bold statement + one visual + one number; provenance goes in a collapsed
+  `<details>` block under it, never in the main text. No tabs for primary results.
+- Color rule (one meaning per color, page-wide): mint = GPL, gray = every baseline, red = failure,
+  blue / amber = pick / push (matches the colors burned into `adapt_demo.mp4`).
+- Paper figures are not used except the architecture diagram; results are native charts/bars
+  (dark theme). The old sim steering clips `R1-guided-L/R` were dropped (`R1-guided-R` slipped).
 
 ## Rules from the owner
 
