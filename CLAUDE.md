@@ -9,8 +9,8 @@ media provenance table; this file has the context and rules that are not visible
 - Repo `matCercola18/reasoning-as-a-distribution`, branch `main`, **public** since 2026-10-20 and
   served by GitHub Pages (`main` / root) at https://matcercola18.github.io/reasoning-as-a-distribution/,
   the URL printed in the arXiv PDF. Every push to `main` redeploys the live site.
-- Open TODOs (search `TODO` in `index.html`): PDF/arXiv/code links and the arXiv BibTeX, once the
-  paper is announced on arXiv.
+- Paper on arXiv as 2610.28166 (2026-10-20): hero "Paper" button links the abstract page, BibTeX
+  is arXiv's entry. Open TODO (search `TODO` in `index.html`): the Code button, once code is public.
 - Structure since 2026-10-19 (owner asked for less text, punchier claims, outcome adaptation
   highlighted): hero → three-verb summary tiles → problem toy → one section per capability
   (Sample, Steer, Adapt) → when it matters → how it works → beyond → scope. Results first, method
